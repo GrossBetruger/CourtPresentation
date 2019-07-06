@@ -5,7 +5,7 @@ select avg(file_download_ratekbper_sec / 1024 * 8) average_actual_speed, t.conne
       join test t on comparison_info.test_id = t.id
       join user_details on t.user_name = user_details.user_name and user_details.speed != 1000
     where file_download_ratekbper_sec != 'infinity'
-    and analyzed_state = 0
+    and (analyzed_state = 0 or t.is_classic_test = false)
     
 group by t.connection, user_details.speed
 order by user_details.speed;
