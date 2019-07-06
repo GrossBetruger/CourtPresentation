@@ -17,7 +17,7 @@ rush_hour_speed_tests as (
   and speed = (select * from target_program)
   and date_part('hour', to_timestamp(start_measuring_timestamp/ 1000) at time zone 'IST' + '1 hour')::int  between 18 and 23 -- evening
   and date_part('day', to_timestamp(start_measuring_timestamp/ 1000) at time zone 'IST' + '1 hour') in (3, 5, 6, 7) -- "Thursday, Friday, Saturday, Tuesday"
-  and speed_test_web_site.analyzed_state = 0
+  and (speed_test_web_site.analyzed_state = 0 or t.is_classic_test = false)
   ),
 
 user_rush_avg as (
