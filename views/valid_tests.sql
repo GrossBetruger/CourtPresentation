@@ -5,7 +5,7 @@ create view valid_tests as
            test.user_name,
            test.connection,
            user_details.speed,
-           speed_test_identifier as website,
+           case when speed_test_identifier = 'fast' then 'netflix' else speed_test_identifier end as website,
            file_name,
            is_classic_test,
            infrastructure,
@@ -18,4 +18,5 @@ create view valid_tests as
     join user_details on test.user_name = user_details.user_name
     where (analyzed_state = 0 or test.is_classic_test = False)
     and test.user_name not in (select * from debug_users)
-    and file_download_ratekbper_sec != 'infinity'
+    and file_download_ratekbper_sec != 'infinity';
+
