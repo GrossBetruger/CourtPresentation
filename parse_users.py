@@ -14,7 +14,22 @@ def parse_coordinates_data(csv_file_name: str) -> List[Tuple[str, str, float, fl
     return result
 
 
+def generate_metabase_map_query(user_data: List[Tuple[str, str, float, float]]) -> str:
+    def generate_line(full_name: str, latitude: float, longitude: float) -> str:
+        hebrew_field_name = "שם"
+        return f"""select {latitude} as latitude, {longitude} as longitude, '{full_name}' as \"{hebrew_field_name}\""""
+    lines = []
+
+    for item in user_data:
+        user, name, lat, long = item
+        lines.append(generate_line(name, lat, long))
+
+    return "\nunion\n".join(lines)
+
+
 if __name__ == "__main__":
-    for _ in parse_coordinates_data("users.csv"):
-        print(_)
+    data = parse_coordinates_data("users.csv")
+    print(generate_metabase_map_query(data))
+
+
 
