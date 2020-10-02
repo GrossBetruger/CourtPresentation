@@ -15,13 +15,16 @@ total_users as (
 
 user_oversell as (
     select user_name,
-           (avg / speed < (select * from oversell)) oversold
+           case
+               when (avg / speed < (select * from oversell)) then 'משתמשים במכירת יתר'
+               when (avg / speed >= (select * from oversell)) then 'משתמשים שאינם במכירת יתר'
+               else 'error'
+           end as oversell
     from user_averages
 )
 select count(distinct user_name) number_of_users,
-       round((count(oversold) / (select * from total_users)::float)::numeric, 2) * 100 percent,
-       oversold,
-       case when oversold then 'משתמשים במכירת יתר' else 'משתמשים שאינם במכירת יתר' end oversold
+       round((count(oversell) / (select * from total_users)::float)::numeric, 2) * 100 percent,
+       oversell
 from user_oversell
-group by oversold
+group by oversell
 ;
