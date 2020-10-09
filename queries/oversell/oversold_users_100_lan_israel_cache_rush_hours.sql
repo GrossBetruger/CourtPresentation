@@ -3,6 +3,7 @@ with user_averages as (
     from valid_tests
     where connection = 'LAN'
     and speed = 100
+    and file_name = 'israel_cache'
     and rush_hour(timestamp)
     group by user_name, speed
 ),
