@@ -1,0 +1,1 @@
+\COPY valid_tests FROM '/home/oren/CourtPresentation/valid_tests_headless.tsv' DELIMITER E'\t' NULL AS '';
