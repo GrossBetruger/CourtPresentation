@@ -83,7 +83,7 @@ insert into user_meta(user_name, full_name) values ('ofir', 'אופיר מזרח
 insert into user_meta(user_name, full_name) values ('omer', 'עומר שייח');
 insert into user_meta(user_name, full_name) values ('omry', 'עומרי תבורי');
 insert into user_meta(user_name, full_name) values ('or_shaked', 'אור שאקד');
-insert into user_meta(user_name, full_name) values ('oren', 'אורן ׳האפס׳ קוריאט');
+insert into user_meta(user_name, full_name) values ('oren', 'אורן קוריאט');
 insert into user_meta(user_name, full_name) values ('orit', 'אורית');
 insert into user_meta(user_name, full_name) values ('paz', 'פז');
 insert into user_meta(user_name, full_name) values ('rachel', 'רחל');

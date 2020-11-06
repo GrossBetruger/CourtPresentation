@@ -14,6 +14,7 @@ USER_VAR_NAME = "user_name"
 USERS = ["rom","vitaly","dalia","Haza","inbaru","sheila","carmit_hot","yosef","ella","orly","dor_b","itamar","yoel","ArielG","raz_s","shay_s","michael","or_shaked","ariel_100","sharon","etl","moshe","lior","valenci","eyal","ofir","golan","lian","yosi","noam","avi","sery","gil","ron","artium","yarden","ilil","etl_home","tammy_a","ben","gilt","dor","gilad","roni","barak_200","paz","oren","david","adi_a","erez","tal_a","hafi","idan","ben_b","miras","aviram","evyatar","ziv","hamaoz","gadi","anna","gali","hila","rotem","nimrod","getzel","viki","ishay","aviad","yakov","nimrod_h","elkana","dudu","tali_l","sivan","daniel_t","dor_bd","wiezel","zion","zhalaby","meital","asaf","assif","s_golan","orit","dor_p","hod","alon_s","tamir","may","carmit","zigi","dani","omer","admin","robert","dan_florentin","yuval","ofer","brody","alon","shay","tali","eli_d","segal","dov","raz","Sery","David","omry","ameer","rachel","admin_200","fadrok","stephan","zvi","shaked","yochi","hila_s","ariel","dana","khalifa","tankus","escape_room","idang","daniel","noam_b","barak","rina"]
 
 
+
 def read_password():
     with open(os.path.expanduser("~/.metapass")) as f:
         return f.read().strip()
