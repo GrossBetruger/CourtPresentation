@@ -11,7 +11,7 @@ DASHBOARD_NUM = 34
 
 USER_VAR_NAME = "user_name"
 
-USERS = ["rom","vitaly","dalia","Haza","inbaru","sheila","carmit_hot","yosef","ella","orly","dor_b","itamar","yoel","ArielG","raz_s","shay_s","michael","or_shaked","ariel_100","sharon","etl","moshe","lior","valenci","eyal","ofir","golan","lian","yosi","noam","avi","sery","gil","ron","artium","yarden","ilil","etl_home","tammy_a","ben","gilt","dor","gilad","roni","barak_200","paz","oren","david","adi_a","erez","tal_a","hafi","idan","ben_b","miras","aviram","evyatar","ziv","hamaoz","gadi","anna","gali","hila","rotem","nimrod","getzel","viki","ishay","aviad","yakov","nimrod_h","elkana","dudu","tali_l","sivan","daniel_t","dor_bd","wiezel","zion","zhalaby","meital","asaf","assif","s_golan","orit","dor_p","hod","alon_s","tamir","may","carmit","zigi","dani","omer","admin","robert","dan_florentin","yuval","ofer","brody","alon","shay","tali","eli_d","segal","dov","raz","Sery","David","omry","ameer","rachel","admin_200","fadrok","stephan","zvi","shaked","yochi","hila_s","ariel","dana","khalifa","tankus","escape_room","idang","daniel","noam_b","barak","rina"]
+USERS = ["user_name","omry","sivan","lior","miras","idan","dov","sery","erez","dalia","hila_s","dor_bd","inbaru","omer","evyatar","lian","noam_b","tali","ameer","stephan","daniel","Sery","artium","raz","David","michael","Haza","daniel_t","admin","zion","paz","ilil","barak_200","rachel","hod","rom","eyal","david","assif","dana","admin_200","eli_d","ella","viki","ofir","segal","roni","nimrod","gil","zvi","tali_l","s_golan","aviram","etl","itamar","hafi","or_shaked","yoel","yarden","orit","raz_s","nimrod_h","dor","fadrok","yakov","ben_b","rina","hamaoz","tankus","getzel","tamir","barak","aviad","asaf","dor_p","rotem","shay","carmit","gadi","dan_florentin","wiezel","ArielG","etl_home","meital","oren","golan","ziv","dani","ariel","tal_a","anna","zhalaby","ofer","khalifa","yosi","ron","escape_room","vitaly","sharon","dor_b","ishay","ben","gilt","zigi","alon","valenci","idang","avi","yochi","gali","shaked","elkana","yuval","carmit_hot","ariel_100","alon_s","gilad","yosef","hila","moshe","may","dudu","sheila","shay_s"]
 
 
 
@@ -36,7 +36,6 @@ def iterate_user_ids(browser, users):
     for user in users:
         browser.get(BASE_URL + f"/dashboard/{DASHBOARD_NUM}?{USER_VAR_NAME}={user}")
         sleep(3)
-        print(len(browser.find_elements_by_class_name("Header-button")))
         _, _, full_screen, _ = browser.find_elements_by_class_name("Header-button")
         full_screen.click()
         sleep(1.8)
