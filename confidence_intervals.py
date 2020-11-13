@@ -13,18 +13,24 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 def calc_intervals(path):
-    user_data_lan_100 = pd.read_csv(path)
-    user_means_lan_100 = user_data_lan_100['user_mean']
-
+    user_data = pd.read_csv(path)
+    user_means = user_data['user_mean']
     confs = [.95, .99, .999]
+
+    print(f"Showing confidence interval intervals for: {data_file_path}")
+    print("Mean user speed:", np.mean(user_means))
+    print("Standard deviation (sample) user speed:", np.std(user_means,  ddof=1))
+    print("Number of users: ", len(user_means))
     for confidence in confs:
-        mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means_lan_100, confidence)
-        print(f"Showing confidence interval intervals for: {data_file_path}")
-        print()
+        mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means, confidence)
         print(f"{lower_bound} to: {upper_bound}, with confidence of {confidence * 100}%")
-        print()
+    print()
 
 
 if __name__ == "__main__":
-    for data_file_path in ["user_means_lan_100.csv"]:
+    for data_file_path in [
+        "user_means_lan_100.csv",
+        "user_means_lan_40.csv",
+        "user_means_lan_200.csv",
+    ]:
         calc_intervals(data_file_path)
