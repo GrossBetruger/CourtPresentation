@@ -2,6 +2,25 @@ import numpy as np
 import scipy.stats
 import pandas as pd
 import scipy
+import psycopg2
+from psycopg2.extensions import cursor
+
+def get_speed_test_websites_rates(website: str):
+    return f"""
+        select ground_truth_rate / speed_test_rate rate
+            from valid_tests
+            where (ground_truth_rate / speed_test_rate) between 0.01 and 100
+            and true_or_null(is_classic_test)
+            and ground_truth_rate > 0
+            and speed_test_rate > 0
+            and website_to_hebrew(website) = '{website}'
+        ;
+    """
+
+
+def get_engine():
+    conn = psycopg2.connect("dbname='postgres' user='postgres' host='localhost' password=''")
+    return conn
 
 
 def mean_confidence_interval(data, confidence=0.95):
@@ -12,7 +31,7 @@ def mean_confidence_interval(data, confidence=0.95):
     return m, m-h, m+h, h
 
 
-def calc_intervals(path):
+def calc_intervals_user_mean_speed(path):
     user_data = pd.read_csv(path)
     user_means = user_data['user_mean']
     confs = [.95, .99, .999]
@@ -27,10 +46,28 @@ def calc_intervals(path):
     print()
 
 
+def calc_intervals_speed_test_website_comparisons():
+    postgres_engine = get_engine()
+    cur: cursor = postgres_engine.cursor()
+    for website in ["גוגל", "בזק", "אוקלה", "הוט", "נטפליקס"]:
+        cur.execute(get_speed_test_websites_rates(website))
+        rates = [x[0] for x in list(cur.fetchall())]
+        print("רווח סמך עבור אתר בדיקת מהירות: {}".format(website))
+        print("יחס ממוצע: {}".format(np.mean(rates)))
+        print("סטיית תקן (מדגם): {}".format(np.std(rates, ddof=1)))
+        confs = [.95, .99, .999]
+        for confidence in confs:
+            mean, lower_bound, upper_bound, h = mean_confidence_interval(rates, confidence)
+            print("ברמת סמך של {}% יחס מהירות בפועל \ למהירות בדיקה באתר בדיקת המהירות של {} הוא בין {} ל-{}".format(confidence * 100, website, lower_bound, upper_bound))
+        print()
+
+
 if __name__ == "__main__":
+    calc_intervals_speed_test_website_comparisons()
+
     for data_file_path in [
         "user_means_lan_100.csv",
         "user_means_lan_40.csv",
         "user_means_lan_200.csv",
     ]:
-        calc_intervals(data_file_path)
+        calc_intervals_user_mean_speed(data_file_path)
