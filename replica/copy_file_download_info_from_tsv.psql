@@ -1,0 +1,1 @@
+ \COPY file_download_info FROM '/home/oren/CourtPresentation/file_download_info.tsv' DELIMITER E'\t' NULL AS '' HEADER csv; 
