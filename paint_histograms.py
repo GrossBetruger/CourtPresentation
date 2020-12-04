@@ -24,6 +24,7 @@ def get_speed_test_ratios(speed_test: str) -> List[float]:
         select ground_truth_rate / speed_test_rate as ratio
         from valid_tests
         where true_or_null(is_classic_test)
+        and is_classic_resource(file_name)
         and speed_test_rate != 0 and ground_truth_rate != 0
         and website  = '{speed_test}'
         and (ground_truth_rate / speed_test_rate) between 0.01 and 100
@@ -68,6 +69,6 @@ if __name__ == "__main__":
         print(f"getting data for: '{website}'")
         ratios = get_speed_test_ratios(website)
         plot_website_ratios_histogram(Website(website), ratios)
-        prefix = ""
+        prefix = "classic_resources_"
         plot.savefig(f'{prefix}{website}_ratios_histogram.png')
         plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
