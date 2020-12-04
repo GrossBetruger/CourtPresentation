@@ -1,11 +1,11 @@
 import arabic_reshaper
-import matplotlib.pyplot as plt
-
+import pandas as pd
 from typing import List
 from confidence_intervals import get_engine
 from psycopg2.extensions import cursor
 from enum import Enum
 from bidi.algorithm import get_display
+import matplotlib.pyplot as plot
 
 
 class Website(Enum):
@@ -38,11 +38,6 @@ def normalize_hebrew(raw_text: str):
 
 
 def plot_website_ratios_histogram(website: Website, ratios: List[float]):
-    n, bins, patches = plt.hist(x=ratios, bins=10,
-                                range=[0, 2])
-
-    xlabel = normalize_hebrew('יחס מהירות בפועל למהירות אתר בדיקה (1.0 = בדיקה מושלמת)')
-    plt.xlabel(xlabel)
     name_translate = {
         "hot": "הוט",
         "bezeq": "בזק",
@@ -50,10 +45,19 @@ def plot_website_ratios_histogram(website: Website, ratios: List[float]):
         "google": "גוגל",
         "netflix": "נטפליקס",
     }
-    ylable = normalize_hebrew("מספר בדיקות")
-    plt.ylabel(ylable)
+
     title = normalize_hebrew(f'התפלגות תוצאות בדיקות מהירות {name_translate[website.value]} - היסטוגרמה')
-    plt.title(title)
+    s = pd.Series(ratios)
+    plt = s.plot(kind='hist', bins=20, color='red', title=title, range=[0, 2])
+    xlabel = normalize_hebrew('יחס מהירות בפועל למהירות אתר בדיקה (1.0 = בדיקה מושלמת)')
+    plt.set_xlabel(xlabel)
+
+    ylable = normalize_hebrew("מספר בדיקות")
+    plt.set_xlabel(ylable)
+    for patch in plt.patches:
+        left, right = patch.xy
+        if left >= 1:  # color bars that are >= 1 green (actual speed was higher than website speed)
+            patch.set_color('green')
     return plt
 
 
@@ -63,6 +67,7 @@ if __name__ == "__main__":
     ]:
         print(f"getting data for: '{website}'")
         ratios = get_speed_test_ratios(website)
-        plot = plot_website_ratios_histogram(Website(website), ratios)
-        plot.savefig(f'{website}_ratios_histogram.png')
+        plot_website_ratios_histogram(Website(website), ratios)
+        prefix = ""
+        plot.savefig(f'{prefix}{website}_ratios_histogram.png')
         plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
