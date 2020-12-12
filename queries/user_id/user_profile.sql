@@ -1,20 +1,27 @@
-select connection "סוג חיבור", avg(ground_truth_rate) as "מהירות ממוצעת",
-  case when
-    rush_hour(timestamp)
-    then 'בשעות עומס'
-    else 'לא בשעות עומס'
-    end as "זמן ביממה"
-    -- evening
-from valid_tests
-where user_name = 'oren' --{{user_name}}
-group by connection, rush_hour(timestamp)
+with number_of_lan_tests as (
+    select count(*) from valid_tests
+    where connection = 'LAN'
+    and user_name = {{user_name}}
+),
 
-union
+number_of_wifi_tests as (
+    select count(*) from valid_tests
+    where connection = 'Wifi'
+    and user_name = {{user_name}}
+)
 
-select connection, avg(ground_truth_rate), 'בכל השעות' as "מהירות ממוצעת"
+select
+  user_name "שם משתמש",
+  isp "ספקית",
+  infrastructure "תשתית",
+  speed as "מהירות תכנית גלישה",
+  min(to_israel_dst_aware(timestamp)) as "התחלת בדיקות",
+  max(to_israel_dst_aware(timestamp)) as "סיום בדיקות",
+  (select * from number_of_lan_tests) as "מספר בדיקת חיבור קווי (LAN)",
+  (select * from number_of_wifi_tests) as "מספר בדיקות אלחוטיות (WiFi)"
+
 from valid_tests
-where user_name = 'oren' --{{user_name}}
-group by connection
-order by "סוג חיבור", "זמן ביממה"
+where user_name = {{user_name}}
+group by user_name, isp, infrastructure, speed
 ;
 
