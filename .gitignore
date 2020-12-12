@@ -1,5 +1,5 @@
 .idea
-metabase*
+*.jar
 .RData
 .Rhistory
 */venv
