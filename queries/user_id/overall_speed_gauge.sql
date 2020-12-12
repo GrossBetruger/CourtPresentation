@@ -1,35 +1,32 @@
-with normalized_num_of_tests as (
-    select least(
-               (
-                   select count(*)
-                   from valid_tests
-                   where connection = 'Wifi'
-                   and user_name = {{user_name}}
-               ),
-               (
-                   select count(*)
-                   from valid_tests
-                   where connection = 'LAN'
-                   and user_name = {{user_name}}
-               )
-            )
+with transposed as
+         (
+             select user_name, -1 wifi_average, avg(ground_truth_rate) lan_average
+             from valid_tests
+             where connection = 'LAN'
+             group by user_name
+
+             union
+
+             select user_name, avg(ground_truth_rate) wifi_average, -1 lan_average
+             from valid_tests
+             where connection = 'Wifi'
+             group by user_name
+         ),
+
+squashed as (
+    select user_name,
+           max(wifi_average) wifi_average,
+           max(lan_average) lan_average
+    from transposed
+    group by user_name
 ),
 
-normalized_tests_sample as (
-    (select ground_truth_rate rate, user_name, speed
-    from valid_tests
-    where user_name = {{user_name}}
-    and connection = 'LAN' limit (select * from normalized_num_of_tests))
-
-    union all
-
-    (select ground_truth_rate rate, user_name, speed
-    from valid_tests
-    where user_name = {{user_name}}
-    and connection = 'Wifi' limit (select * from normalized_num_of_tests))
-    )
-
-select avg(rate) "ממהירות ממוצעת  - חיבור קווי ואלחוטי"
-from normalized_tests_sample
+normalized as (
+    select user_name, (wifi_average + lan_average) / 2 normalized_average_speed
+    from squashed
+    where -1 not in (wifi_average, lan_average)
+)
+select normalized_average_speed from normalized
+where user_name = {{user_name}}
 ;
 
