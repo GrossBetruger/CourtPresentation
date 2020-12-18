@@ -2,8 +2,10 @@ import numpy as np
 import scipy.stats
 import pandas as pd
 import scipy
-import psycopg2
 from psycopg2.extensions import cursor
+
+from utils import get_engine
+
 
 def get_speed_test_websites_rates(website: str):
     return f"""
@@ -16,12 +18,6 @@ def get_speed_test_websites_rates(website: str):
             and website_to_hebrew(website) = '{website}'
         ;
     """
-
-
-def get_engine():
-    conn = psycopg2.connect("dbname='postgres' user='postgres' host='localhost' password=''")
-    return conn
-
 
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0 * np.array(data)
