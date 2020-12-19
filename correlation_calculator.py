@@ -7,7 +7,7 @@ from typing import List, Dict
 
 from scipy.stats import pearsonr
 
-from utils import get_engine
+from utils import get_engine, normalize_hebrew
 
 CAPACITY = "capacity"
 
@@ -61,11 +61,12 @@ if __name__ == "__main__":
     slope, intercept, r_value, p_value, stderr = scipy.stats.linregress(xs, ys)
 
     fig, ax = plt.subplots()
-    ax.plot(xs, ys, linewidth=0, marker='s', label='Data points')
-    ax.plot(xs, intercept + slope * xs, label='regression line')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+    ax.plot(xs, ys, linewidth=0, marker='s', label=normalize_hebrew('משתמשים'))
+    ax.plot(xs, intercept + slope * xs, label=normalize_hebrew('קו רגרסיה'))
+    ax.set_xlabel(normalize_hebrew('מספר נפשות בבית'))
+    ax.set_ylabel(normalize_hebrew('יחס מהירות לחבילה'))
     ax.legend(facecolor='white')
     plt.savefig("household_size_and_internet_capacity_correlation")
     plt.show()
+    print(f"r squared: {r_value ** 2}")
 

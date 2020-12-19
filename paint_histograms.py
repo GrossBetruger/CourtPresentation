@@ -1,11 +1,11 @@
-import arabic_reshaper
 import pandas as pd
 from typing import List
 from confidence_intervals import get_engine
 from psycopg2.extensions import cursor
 from enum import Enum
-from bidi.algorithm import get_display
 import matplotlib.pyplot as plot
+
+from utils import normalize_hebrew
 
 
 class Website(Enum):
@@ -32,10 +32,6 @@ def get_speed_test_ratios(speed_test: str) -> List[float]:
         """
     )
     return [row[0] for row in cur.fetchall()]
-
-
-def normalize_hebrew(raw_text: str):
-    return get_display(arabic_reshaper.reshape(raw_text))
 
 
 def plot_website_ratios_histogram(website: Website, ratios: List[float]):
