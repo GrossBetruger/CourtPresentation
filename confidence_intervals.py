@@ -30,6 +30,7 @@ def get_ground_truth_rate_means(speed: int) -> pd.Series:
         """
         select avg(ground_truth_rate) user_mean from valid_tests
         where speed = {}
+        and connection = 'LAN'
         group by user_name
         ;
         """.format(speed)
@@ -62,13 +63,17 @@ def calc_intervals_user_mean_speed(user_means: pd.Series, speed: int):
     standard_deviation_population = round(np.std(user_means,  ddof=1), DECIMAL_PLACES)
     print("סטיית תקן ממוצעי משתמשים (מדגם):", standard_deviation_population)
     print("מספר משתמשים: ", len(user_means))
+    print()
+    print("רווח בר סמך")
     for confidence in confs:
         mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means, confidence)
         mean = round(mean, DECIMAL_PLACES)
         lower_bound = round(lower_bound, DECIMAL_PLACES)
         upper_bound = round(upper_bound, DECIMAL_PLACES)
         assert mean == sample_mean
-        print(f"{lower_bound} to: {upper_bound}, with confidence of {confidence * 100}%")
+        msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי תכנית " + str(speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
+        print(msg)
+        print()
     print()
 
 
