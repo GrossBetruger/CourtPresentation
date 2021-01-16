@@ -68,3 +68,12 @@ if __name__ == "__main__":
         prefix = "classic_resources_"
         plot.savefig(f'{prefix}{website}_ratios_histogram.png')
         plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
+
+    #  Random Normal Distribution (example):
+
+    import numpy
+
+    nums = numpy.random.normal(1, 0.3, 100000)
+    plot.hist(nums, 40, density=True)
+    plot.show()
+    quit()
