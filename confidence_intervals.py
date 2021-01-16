@@ -95,7 +95,7 @@ def calc_intervals_speed_test_website_comparisons():
 
 if __name__ == "__main__":
     # Websites Confidence Intervals
-    # calc_intervals_speed_test_website_comparisons()
+    calc_intervals_speed_test_website_comparisons()
 
     # User Ground Truth Means Confidence Intervals
     for speed in [100, 40, 200]:
