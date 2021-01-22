@@ -140,11 +140,14 @@ def calc_intervals_speed_test_website_comparisons():
         cur.execute(get_speed_test_websites_rates(website))
         rates = [x[0] for x in list(cur.fetchall())]
         print("רווח סמך עבור אתר בדיקת מהירות: {}".format(website))
-        print("יחס ממוצע: {}".format(np.mean(rates)))
-        print("סטיית תקן (מדגם): {}".format(np.std(rates, ddof=1)))
+        print("יחס ממוצע: {}".format(round(np.mean(rates), DECIMAL_PLACES)))
+        print("סטיית תקן (מדגם): {}".format(round(np.std(rates, ddof=1), DECIMAL_PLACES)))
+        print("מספר דגימות (N): {}".format(len(rates)))
         confs = [.95, .99, .999]
         for confidence in confs:
             mean, lower_bound, upper_bound, h = mean_confidence_interval(rates, confidence)
+            lower_bound = round(lower_bound, DECIMAL_PLACES)
+            upper_bound = round(upper_bound, DECIMAL_PLACES)
             print("ברמת סמך של {}% יחס מהירות בפועל \ למהירות בדיקה באתר בדיקת המהירות של {} הוא בין {} ל-{}".format(confidence * 100, website, lower_bound, upper_bound))
         print()
 
@@ -152,6 +155,7 @@ def calc_intervals_speed_test_website_comparisons():
 if __name__ == "__main__":
     # Websites Confidence Intervals
     calc_intervals_speed_test_website_comparisons()
+    quit()
 
     # User Ground Truth Means Confidence Intervals
     for speed in [100, 40, 200]:
