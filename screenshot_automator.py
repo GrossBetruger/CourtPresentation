@@ -19,6 +19,8 @@ HEAVY_SLEEP = 35  # for question that make the DB sweat
 
 DEFAULT_SLEEP = 2
 
+MEDIUM_SLEEP = 6
+
 
 class PlotPositions(ABC):
     mouse_drag_positions: List[Tuple[int, int]] = NotImplemented
@@ -56,6 +58,13 @@ QUESTIONS = {
             44: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
             46: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שרת מטמון בישראל", SLEEP_KEY: DEFAULT_SLEEP},
             45: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שרת מטמון בישראל שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
+            47: {TEXT_KEY: "משתמשים במכירת יתר תכנית 40 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            48: {TEXT_KEY: "משתמשים במכירת יתר תכנית 40 מגה-ביט, חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
+            49: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            50: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי שעות העומס", SLEEP_KEY: MEDIUM_SLEEP},
+            51: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל", SLEEP_KEY: MEDIUM_SLEEP},
+            52: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
+            53: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
         },
 }
 
