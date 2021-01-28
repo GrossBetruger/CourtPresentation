@@ -1,4 +1,6 @@
 import os
+from enum import Enum
+
 import pyautogui
 
 
@@ -22,6 +24,11 @@ DEFAULT_SLEEP = 2
 MEDIUM_SLEEP = 6
 
 
+class PlotType(Enum):
+    Oversell = "Oversell"
+    CapacityOfService = "Capacity of Service"
+
+
 class PlotPositions(ABC):
     mouse_drag_positions: List[Tuple[int, int]] = NotImplemented
     on_plot_point: Optional[Tuple[int, int]] = None
@@ -37,7 +44,7 @@ class PieFullScreenPositions1920x1080(PlotPositions):
         self.on_plot_point = (776, 490)
 
 
-class PieHalfScreenPositions1920x1080(PlotPositions):
+class OversellPieHalfScreenPositions1920x1080(PlotPositions):
     def __init__(self):
         up = 660
         down = 1018
@@ -51,35 +58,62 @@ class PieHalfScreenPositions1920x1080(PlotPositions):
         self.on_plot_point = (776, 490)
 
 
-QUESTIONS = {
+class CapacityOfServicePieHalfScreenPositions1920x1080(PlotPositions):
+    def __init__(self):
+        up = 488
+        down = 1018
+        left = 261
+        right = 1232
+        self.mouse_drag_positions = [
+                        (left, up),
+                        (right, up),
+                        (right, down)
+                    ]
+        self.on_plot_point = (776, 490)
+
+
+OVERSELL_QUESTIONS = {
     "מכירת יתר":
         {
-            43: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
-            44: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
-            46: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שרת מטמון בישראל", SLEEP_KEY: DEFAULT_SLEEP},
-            45: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שרת מטמון בישראל שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
-            47: {TEXT_KEY: "משתמשים במכירת יתר תכנית 40 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
-            48: {TEXT_KEY: "משתמשים במכירת יתר תכנית 40 מגה-ביט, חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
-            49: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
-            50: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי שעות העומס", SLEEP_KEY: MEDIUM_SLEEP},
-            51: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל", SLEEP_KEY: MEDIUM_SLEEP},
-            52: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
-            53: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
-            54: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי, שעות העומס", SLEEP_KEY: 80},
-            55: {TEXT_KEY: "משתמשי בזק, תכנית 100 מגה-ביט במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP},
+            # 43: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            # 44: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
+            # 46: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שרת מטמון בישראל", SLEEP_KEY: DEFAULT_SLEEP},
+            # 45: {TEXT_KEY: "משתמשים במכירת יתר תכנית 100 מגה-ביט, חיבור קווי - שרת מטמון בישראל שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
+            # 47: {TEXT_KEY: "משתמשים במכירת יתר תכנית 40 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            # 48: {TEXT_KEY: "משתמשים במכירת יתר תכנית 40 מגה-ביט, חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
+            # 49: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            # 50: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי שעות העומס", SLEEP_KEY: MEDIUM_SLEEP},
+            # 51: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל", SLEEP_KEY: MEDIUM_SLEEP},
+            # 52: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
+            # 53: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            # 54: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי, שעות העומס", SLEEP_KEY: 80},
+            # 55: {TEXT_KEY: "משתמשי בזק, תכנית 100 מגה-ביט במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP},
         },
 }
 
-QUESTIONS = OrderedDict(QUESTIONS)
+CAPACITY_OF_SERVICE_QUESTIONS = {
+    "נפח שירות":
+        {
+            56: {TEXT_KEY: "נפח שירות חבילת 100 מגה-ביט דגימות בחיבור קווי - כל השעות", SLEEP_KEY: MEDIUM_SLEEP},
+        },
+}
+
+OVERSELL_QUESTIONS = OrderedDict(OVERSELL_QUESTIONS)
 
 
 class ResolutionNotSupportedException(Exception):
     pass
 
 
-def resolution_to_positions(size: Size) -> Optional[PlotPositions]:
+def resolution_to_positions(size: Size, plot_type: PlotType) -> Optional[PlotPositions]:
+
     if size.width == 1920 and size.height == 1080:
-        return PieHalfScreenPositions1920x1080()
+
+        if plot_type is PlotType.Oversell:
+            return OversellPieHalfScreenPositions1920x1080()
+
+        elif plot_type is PlotType.CapacityOfService:
+            return CapacityOfServicePieHalfScreenPositions1920x1080()
 
 
 def authenticate_metabase(browser):
@@ -118,25 +152,20 @@ def open_editor(driver: webdriver.Chrome):
             elem.click()
 
 
-def handle_question(topic: str, question: int):
+def handle_question(topic: str, question: int, positions: PlotPositions, sleepy_time: int, text: str):
     topic_path = Path("question_snapshots") / Path(topic)
     if not os.path.exists(topic_path):
         os.makedirs(topic_path)
 
     jump_to_question(driver, question)
-    sleepy_time = QUESTIONS[topic][question][SLEEP_KEY]
+    # sleepy_time = OVERSELL_QUESTIONS[topic][question][SLEEP_KEY]
     sleep(sleepy_time)
-    positions = resolution_to_positions(pyautogui.size())
-    if positions is None:
-        raise ResolutionNotSupportedException(f"resolution: {pyautogui.size()} "
-                                              f"is not supported,"
-                                              f" please add it to the 'resolution_to_positions' function")
 
     open_editor(driver)
 
     take_question_snapshot(positions)
     sleep(0.5)  # wait for screenshot to be created
-    text = QUESTIONS[topic][question][TEXT_KEY]
+    # text = OVERSELL_QUESTIONS[topic][question][TEXT_KEY]
     print(f"took snapshot for question: '{text}' from topic '{topic}'")
     linux_screenshot_path = os.path.expanduser("~/Pictures")
     linux_screenshots = os.listdir(os.path.expanduser("~/Pictures"))
@@ -152,10 +181,12 @@ def handle_question(topic: str, question: int):
 def record_positions():
     while True:
         print(pyautogui.position())
-        sleep(0.5)
+        sleep(1)
 
 
 if __name__ == "__main__":
+    # record_positions()
+    # quit()
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_argument("--kiosk")
@@ -166,9 +197,30 @@ if __name__ == "__main__":
     authenticate_metabase(driver)
     sleep(2)
 
-    for topic in QUESTIONS:
-        for question in QUESTIONS[topic]:
-            handle_question(topic, question)
+    oversell_positions = resolution_to_positions(pyautogui.size(), PlotType.Oversell)
+    if oversell_positions is None:
+        raise ResolutionNotSupportedException(f"resolution: {pyautogui.size()} "
+                                              f"is not supported,"
+                                              f" please add it to the 'resolution_to_positions' function")
+
+    capacity_positions = resolution_to_positions(pyautogui.size(), PlotType.CapacityOfService)
+    if capacity_positions is None:
+        raise ResolutionNotSupportedException(f"resolution: {pyautogui.size()} "
+                                              f"is not supported,"
+                                              f" please add it to the 'resolution_to_positions' function")
+
+    for topic in OVERSELL_QUESTIONS:
+        for question in OVERSELL_QUESTIONS[topic]:
+            sleep_time = OVERSELL_QUESTIONS[topic][question][SLEEP_KEY]
+            title = OVERSELL_QUESTIONS[topic][question][TEXT_KEY]
+            handle_question(topic, question, oversell_positions, sleep_time, title)
+
+    print(type(capacity_positions))
+    for topic in CAPACITY_OF_SERVICE_QUESTIONS:
+        for question in CAPACITY_OF_SERVICE_QUESTIONS[topic]:
+            sleep_time = CAPACITY_OF_SERVICE_QUESTIONS[topic][question][SLEEP_KEY]
+            title = CAPACITY_OF_SERVICE_QUESTIONS[topic][question][TEXT_KEY]
+            handle_question(topic, question, capacity_positions, sleep_time, title)
 
     sleep(1)
     driver.close()
