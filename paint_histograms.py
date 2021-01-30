@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plot
@@ -121,7 +124,12 @@ def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float]):
                          bins=10,
                          _range=(0, 100))
 
-    plot.savefig(title + ".png")
+    snapshots_path = Path("question_snapshots") / Path('ground_truth_rate_histograms')
+    if not os.path.exists(snapshots_path):
+        os.makedirs(snapshots_path)
+
+    fig_path = snapshots_path / Path(title + ".png")
+    plot.savefig(fig_path)
     plot.show()
 
 
