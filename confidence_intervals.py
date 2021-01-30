@@ -83,7 +83,7 @@ def get_ground_truth_rate_means_by_vendor(vendor: Vendor, speed: int) -> pd.Seri
 
 
 def calc_intervals_user_mean_speed_by_vendor(user_means: pd.Series, speed: int, vendor: Vendor):
-    confs = [.95, .99, .999]
+    confs = [.51, .80, .95]
 
     print("נתוני היסק סטטיסטי משתמשי " + vendor.value["name"] + " בתכנית :" + str(speed) + " מגה-ביט לשנייה (חיבור קווי)")
     sample_mean = round(np.mean(user_means), DECIMAL_PLACES)
@@ -127,7 +127,7 @@ def calc_intervals_user_mean_speed(user_means: pd.Series, speed: int):
         lower_bound = round(lower_bound, DECIMAL_PLACES)
         upper_bound = round(upper_bound, DECIMAL_PLACES)
         assert mean == sample_mean
-        msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי תכנית " + str(speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
+        msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי תכנית: " + str(speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
         print(msg)
         print()
     print()
@@ -153,14 +153,14 @@ def calc_intervals_speed_test_website_comparisons():
 
 
 if __name__ == "__main__":
-    # Websites Confidence Intervals
-    calc_intervals_speed_test_website_comparisons()
-    quit()
-
-    # User Ground Truth Means Confidence Intervals
-    for speed in [100, 40, 200]:
-        user_means = get_ground_truth_rate_means(speed)
-        calc_intervals_user_mean_speed(user_means, speed)
+    # # Websites Confidence Intervals
+    # calc_intervals_speed_test_website_comparisons()
+    # quit()
+    #
+    # # User Ground Truth Means Confidence Intervals
+    # for speed in [100, 40, 200]:
+    #     user_means = get_ground_truth_rate_means(speed)
+    #     calc_intervals_user_mean_speed(user_means, speed)
 
     # Vendor Ground Truth Means Confidence Intervals
     for vendor in Vendor:
