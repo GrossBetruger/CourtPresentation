@@ -78,7 +78,8 @@ def plot_histogram(x_values: List[float],
                    x_label: str,
                    y_label: str,
                    bins: int,
-                   _range: Tuple[int, int]):
+                   _range: Tuple[int, int],
+                   size_of_tick = None):
 
     title = normalize_hebrew(title)
     s = pd.Series(x_values)
@@ -89,7 +90,9 @@ def plot_histogram(x_values: List[float],
     plt.set_ylabel(y_label)
 
     first_bin, last_bin = _range
-    plt.set_xticks(list(range(first_bin, last_bin + 1, (last_bin + 1) // bins)))
+    if size_of_tick is None:
+        size_of_tick = (last_bin + 1) // bins
+    plt.set_xticks(list(range(first_bin, last_bin + 1, size_of_tick)))
     return title
 
 
@@ -117,15 +120,17 @@ def plot_website_ratios_histogram(website: Website, ratios: List[float]):
     return plt
 
 
-def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float]):
+def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float], speed: int):
     title = f'היסטוגרמה מהירות הורדה: ' +  vendor_to_hebrew_name(vendor_users)
     title += ' תכנית ' + str(speed) + ' מגהביט'
+    last_xtick = speed if speed < 200 else 220
     plt = plot_histogram(x_values=ratios,
                          title=title,
                          x_label='מהירות',
                          y_label='מספר בדיקות',
                          bins=speed // 10,
-                         _range=(0, speed))
+                         _range=(0, last_xtick),
+                         size_of_tick=20 if speed == 200 else None)
 
     snapshots_path = Path("question_snapshots") / Path('ground_truth_rate_histograms')
     if not os.path.exists(snapshots_path):
@@ -137,7 +142,7 @@ def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float]):
 
 
 def set_graphical_context():
-    sns.set_style("darkgrid")
+
     sns.set(font='DejaVu Sans',
             font_scale=True,
             rc={
@@ -158,20 +163,18 @@ def set_graphical_context():
                 'xtick.direction': 'out',
                 'xtick.top': False,
                 'ytick.color': 'dimgrey',
+
+                'xtick.major.width': 0.1,
+                'xtick.minor.width': 0.1,
+
                 'ytick.direction': 'out',
                 'ytick.left': True,
                 'ytick.right': False})
-
-
-    # sns.set_context("notebook", rc={"font.size": 13,
-    #                                 "axes.titlesize": 14,
-    #                                 "axes.labelsize": 12})
-
-    # sns.set_color_codes("dark")
+    sns.set_style("darkgrid")
 
 
 if __name__ == "__main__":
-    # Website comparison histogram logic
+    # # Website comparison histogram logic
     for website in [
         "netflix", "ookla", "bezeq", "google", "hot"
     ]:
@@ -197,5 +200,4 @@ if __name__ == "__main__":
             ground_truth_rates = get_ground_truth_speeds_by_vendor(users, speed)
             if not ground_truth_rates:
                 continue
-            plot_ground_truth_speeds(vendor_users=users, ratios=ground_truth_rates)
-    quit()
+            plot_ground_truth_speeds(vendor_users=users, ratios=ground_truth_rates, speed=speed)
