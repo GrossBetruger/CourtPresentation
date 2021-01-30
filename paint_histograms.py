@@ -77,7 +77,7 @@ def plot_histogram(x_values: List[float],
                    title: str,
                    x_label: str,
                    y_label: str,
-                   bins: float,
+                   bins: int,
                    _range: Tuple[int, int]):
 
     title = normalize_hebrew(title)
@@ -87,6 +87,9 @@ def plot_histogram(x_values: List[float],
     y_label = normalize_hebrew(y_label)
     plt.set_xlabel(x_label)
     plt.set_ylabel(y_label)
+
+    first_bin, last_bin = _range
+    plt.set_xticks(list(range(first_bin, last_bin + 1, (last_bin + 1) // bins)))
     return title
 
 
@@ -121,8 +124,8 @@ def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float]):
                          title=title,
                          x_label='מהירות',
                          y_label='מספר בדיקות',
-                         bins=10,
-                         _range=(0, 100))
+                         bins=speed // 10,
+                         _range=(0, speed))
 
     snapshots_path = Path("question_snapshots") / Path('ground_truth_rate_histograms')
     if not os.path.exists(snapshots_path):
@@ -134,7 +137,9 @@ def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float]):
 
 
 def set_graphical_context():
+    sns.set_style("darkgrid")
     sns.set(font='DejaVu Sans',
+            font_scale=True,
             rc={
                 'axes.axisbelow': False,
                 'axes.edgecolor': 'lightgrey',
@@ -157,11 +162,12 @@ def set_graphical_context():
                 'ytick.left': True,
                 'ytick.right': False})
 
-    sns.set_context("notebook", rc={"font.size": 16,
-                                    "axes.titlesize": 20,
-                                    "axes.labelsize": 12})
 
-    sns.set_color_codes("dark")
+    # sns.set_context("notebook", rc={"font.size": 13,
+    #                                 "axes.titlesize": 14,
+    #                                 "axes.labelsize": 12})
+
+    # sns.set_color_codes("dark")
 
 
 if __name__ == "__main__":
