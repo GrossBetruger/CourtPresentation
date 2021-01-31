@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
@@ -12,6 +13,10 @@ from enum import Enum
 
 
 from utils import normalize_hebrew
+
+TEST_RESULT_HEBREW = normalize_hebrew("תוצאת דגימה")
+
+VENDOR_HEBREW = normalize_hebrew("ספק")
 
 
 class Website(Enum):
@@ -174,7 +179,7 @@ def set_graphical_context():
 
 
 if __name__ == "__main__":
-    # # Website comparison histogram logic
+    # Website comparison histogram logic
     for website in [
         "netflix", "ookla", "bezeq", "google", "hot"
     ]:
@@ -194,10 +199,34 @@ if __name__ == "__main__":
     plot.hist(nums, 40, density=True)
     plot.show()
 
-    # Ground truth rate histogram logic
+    # Ground truth rate histogram and violin plot logic
+    violin_data = defaultdict(list)
+    internet_speeds = [40, 100, 200]
     for users in [VendorUsers.Bezeq, VendorUsers.Hot, VendorUsers.Partner]:
-        for speed in [40, 100, 200]:
+        for speed in internet_speeds:
+
             ground_truth_rates = get_ground_truth_speeds_by_vendor(users, speed)
+            vendor_name_hebrew = normalize_hebrew(vendor_to_hebrew_name(users))
+
+            # create violin data
+            for rate in ground_truth_rates:
+                violin_data[speed].append({VENDOR_HEBREW: vendor_name_hebrew,
+                                           # "תכנית": speed,
+                                           TEST_RESULT_HEBREW: rate})
             if not ground_truth_rates:
                 continue
             plot_ground_truth_speeds(vendor_users=users, ratios=ground_truth_rates, speed=speed)
+
+    for speed in internet_speeds:
+        raw_title = "התפלגות מהירויות דגימה תכנית: " + str(speed) + " מגה-ביט"
+        speed_violin_data = pd.DataFrame.from_dict(violin_data[speed])
+        sns_plot = sns.violinplot(x=speed_violin_data[VENDOR_HEBREW], y=speed_violin_data[TEST_RESULT_HEBREW])
+        sns_plot.set(title=normalize_hebrew(raw_title))
+
+        snapshots_path = Path("question_snapshots") / Path('ground_truth_violin_plots')
+        if not os.path.exists(snapshots_path):
+            os.makedirs(snapshots_path)
+
+        fig_path = snapshots_path / Path(raw_title + ".png")
+        plot.savefig(fig_path)
+        plot.show()
