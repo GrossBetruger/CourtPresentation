@@ -8,6 +8,8 @@ from abc import ABC
 from collections import OrderedDict
 from time import sleep
 from typing import Optional, List, Tuple
+
+from numpy import mean
 from pyautogui import Size
 from selenium import webdriver
 from UserIdSnapshotter.snapshotter import BASE_URL
@@ -30,60 +32,77 @@ class PlotType(Enum):
 
 
 class PlotPositions(ABC):
+    up: int
+    down: int
+    left: int
+    right: int
     mouse_drag_positions: List[Tuple[int, int]] = NotImplemented
-    on_plot_point: Optional[Tuple[int, int]] = None
+
+    def on_plot_point(self) -> Tuple[int, int]:
+        x = mean([self.left, self.right])
+        y = mean([self.up, self.down])
+        return x, y
 
 
 class PieFullScreenPositions1920x1080(PlotPositions):
     def __init__(self):
+        self.up = 355
+        self.down = 923
+        self.left = 133
+        self.right = 1245
         self.mouse_drag_positions = [
-                        (133, 355),
-                        (1245, 355),
-                        (1245, 923),
-                    ]
-        self.on_plot_point = (776, 490)
+            (self.left, self.up),
+            (self.right, self.up),
+            (self.right, self.down)
+        ]
+        # self.mouse_drag_positions = [
+        #                 (133, 355),
+        #                 (1245, 355),
+        #                 (1245, 923),
+        #             ]
+        # self.on_plot_point = (776, 490)
 
 
 class OversellPieHalfScreenPositions1920x1080(PlotPositions):
     def __init__(self):
-        up = 660
-        down = 1018
-        left = 230
-        right = 1148
+        self.up = 660
+        self.down = 1018
+        self.left = 230
+        self.right = 1148
         self.mouse_drag_positions = [
-                        (left, up),
-                        (right, up),
-                        (right, down)
+                        (self.left, self.up),
+                        (self.right, self.up),
+                        (self.right, self.down)
                     ]
-        self.on_plot_point = (776, 490)
+        # self.on_plot_point = (776, 490)
 
 
 class CapacityOfServicePieHalfScreenPositions1920x1080(PlotPositions):
     def __init__(self):
-        up = 488
-        down = 1018
-        left = 261
-        right = 1232
+        self.up = 488
+        self.down = 1018
+        self.left = 261
+        self.right = 1232
         self.mouse_drag_positions = [
-                        (left, up),
-                        (right, up),
-                        (right, down)
-                    ]
-        self.on_plot_point = (776, 490)
+            (self.left, self.up),
+            (self.right, self.up),
+            (self.right, self.down)
+        ]
+        # self.on_plot_point = (776, 490)
 
 
 class WebsiteComparisonScreenPositions1920x1080(PlotPositions):
     def __init__(self):
-        up = 490
-        down = 1028
-        left = 6
-        right = 1913
+        self.up = 490
+        self.down = 1028
+        self.left = 6
+        self.right = 1913
         self.mouse_drag_positions = [
-                        (left, up),
-                        (right, up),
-                        (right, down)
-                    ]
-        self.on_plot_point = (776, 490)
+            (self.left, self.up),
+            (self.right, self.up),
+            (self.right, self.down)
+        ]
+        # self.on_plot_point = (776, 490)
 
 
 OVERSELL_QUESTIONS = {
@@ -101,7 +120,8 @@ OVERSELL_QUESTIONS = {
             # 52: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
             # 53: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
             # 54: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי, שעות העומס", SLEEP_KEY: 80},
-            # 55: {TEXT_KEY: "משתמשי בזק, תכנית 100 מגה-ביט במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP},
+            # 55: {TEXT_KEY: "משתמשי בזק, תכנית 100 מגה-ביט במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP + 4},
+            67: {TEXT_KEY: "משתמשי בזק (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP + 4},
         },
 }
 
@@ -122,9 +142,9 @@ CAPACITY_OF_SERVICE_QUESTIONS = {
 WEBSITE_COMPARISON_QUESTIONS = {
     "השוואת אתרי בדיקת מהירות ברשת":
         {
-            64: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה מכל המקורות", SLEEP_KEY: 15},
-            65: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה מאתרים", SLEEP_KEY: 15},
-            66: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה משרת מטמון בישראל", SLEEP_KEY: 15},
+            # 64: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה מכל המקורות", SLEEP_KEY: 15},
+            # 65: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה מאתרים", SLEEP_KEY: 15},
+            # 66: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה משרת מטמון בישראל", SLEEP_KEY: 15},
         },
 }
 
@@ -158,7 +178,7 @@ def jump_to_question(driver: webdriver.Chrome, question_code: int):
 
 
 def take_question_snapshot(plot_positions: PlotPositions):
-    hover_point = plot_positions.on_plot_point
+    hover_point = plot_positions.on_plot_point()
     pyautogui.moveTo(hover_point)
 
     points = plot_positions.mouse_drag_positions
