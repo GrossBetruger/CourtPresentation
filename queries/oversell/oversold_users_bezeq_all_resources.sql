@@ -1,15 +1,10 @@
-with bezeqs as (
-    select distinct user_name
-    from valid_tests
-    where (isp ~* 'bezeq' or infrastructure ~* 'bezeq')
-),
-oversell as (select 0.5),
+with oversell as (select 0.5),
 
 user_averages as (
     select avg(ground_truth_rate), user_name, speed
     from valid_tests
     where connection = 'LAN'
-    and user_name in (select * from bezeqs)
+    and user_name in (select * from bezeq_users)
     group by user_name, speed
 ),
 
@@ -24,7 +19,7 @@ user_oversell as (
 )
 
 select count(distinct user_name) number_of_users,
-       round((count(oversell) / (select count(*) from bezeqs)::float)::numeric, 2) * 100 percent,
+       round((count(oversell) / (select count(*) from bezeq_users)::float)::numeric, 2) * 100 percent,
        oversell
 from user_oversell
 group by oversell
