@@ -11,7 +11,7 @@ number_of_wifi_tests as (
 )
 
 select
-  user_name "שם משתמש",
+  "יוזר" as "שם משתמש",
   isp "ספקית",
   infrastructure "תשתית",
   speed as "מהירות תכנית גלישה",
@@ -21,7 +21,8 @@ select
   (select * from number_of_wifi_tests) as "מספר בדיקות אלחוטיות (WiFi)"
 
 from valid_tests
+join testers on valid_tests.user_name = testers."יוזר"
 where user_name = {{user_name}}
-group by user_name, isp, infrastructure, speed
+group by "שם משתמש", isp, infrastructure, speed
 ;
 
