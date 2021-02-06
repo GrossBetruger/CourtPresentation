@@ -1,18 +1,17 @@
 import os
-from collections import defaultdict
-from pathlib import Path
-
+import numpy
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plot
 
+from pathlib import Path
+from collections import defaultdict
 from typing import List, Tuple
 from confidence_intervals import get_engine
 from psycopg2.extensions import cursor
 from enum import Enum
-
-
 from utils import normalize_hebrew
+
 
 TEST_RESULT_HEBREW = normalize_hebrew("תוצאת דגימה")
 
@@ -115,7 +114,7 @@ def plot_histogram(x_values: List[float],
     plt = s.plot(kind='hist', bins=bins, title=title, range=_range)
 
     # plt.axes.set_title("Title", fontsize=15)
-    plt.set_xlabel("X Label", fontsize=12)
+    plt.set_xlabel("X Label", fontsize=10)
     plt.set_ylabel("Y Label", fontsize=10)
 
     x_label = normalize_hebrew(x_label)
@@ -135,7 +134,7 @@ def plot_website_ratios_histogram(ratios: List[float], title: str):
                          title=title,
                          x_label='אתר בדיקת מהירות',
                          y_label='מספר בדיקות',
-                         bins=20,
+                         bins=40,
                          _range=(0, 2))
     return plt
 
@@ -194,10 +193,7 @@ def set_graphical_context():
     sns.set_style("darkgrid")
 
 
-if __name__ == "__main__":
-    set_graphical_context()  # Make Matplotlib not suck at aesthetics
-
-    # Website comparison histogram logic
+def speed_test_website_main():
     for website in [
         "netflix", "ookla", "bezeq", "google", "hot"
     ]:
@@ -214,14 +210,8 @@ if __name__ == "__main__":
         plot.savefig(snapshots_path / Path(title + ".png"))
         plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
 
-    #  Random Normal Distribution (example):
-    import numpy
 
-    nums = numpy.random.normal(1, 0.3, 100000)
-    plot.hist(nums, 40, density=True)
-    plot.show()
-
-    # Ground truth rate histogram and violin plot logic
+def ground_truth_main():
     violin_data = defaultdict(list)
     internet_speeds = [40, 100, 200]
     for users in [VendorUsers.Bezeq, VendorUsers.Hot, VendorUsers.Partner]:
@@ -255,3 +245,23 @@ if __name__ == "__main__":
         plot.savefig(fig_path)
         print(f"saving {fig_path}")
         plot.show()
+
+
+if __name__ == "__main__":
+    set_graphical_context()  # Make Matplotlib not suck at aesthetics
+
+    # Website comparison histogram logic
+    # speed_test_website_main()
+
+    #  Random Normal Distribution (example):
+    nums = numpy.random.normal(1, 0.3, 100000)
+    plot.hist(nums, 40, density=True)
+    title = "היסטוגרמה התפלגות נורמלית של משתנה אקראי"
+    plot.suptitle(normalize_hebrew(title))
+    plot.savefig(title + ".png")
+    print(f'saving {title + ".png"}')
+    plot.show()
+
+
+    # Ground truth rate histogram and violin plot logic
+    # ground_truth_main()
