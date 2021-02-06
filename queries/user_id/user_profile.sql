@@ -11,7 +11,7 @@ number_of_wifi_tests as (
 )
 
 select
-  "יוזר" as "שם משתמש",
+  "שם_מלא" as "שם משתמש",
   isp "ספקית",
   infrastructure "תשתית",
   speed as "מהירות תכנית גלישה",
