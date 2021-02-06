@@ -33,6 +33,15 @@ class VendorUsers(Enum):
     Partner = "partner_users"
 
 
+WEBSITE_NAME_TRANSLATE = {
+        "hot": "הוט",
+        "bezeq": "בזק",
+        "ookla": "אוקלה",
+        "google": "גוגל",
+        "netflix": "נטפליקס",
+    }
+
+
 def vendor_to_hebrew_name(vendor: VendorUsers) -> str:
     if vendor is VendorUsers.Bezeq:
         return 'בזק'
@@ -78,17 +87,37 @@ def get_ground_truth_speeds_by_vendor(vendor: VendorUsers, speed: int):
     return [row[0] for row in cur.fetchall()]
 
 
+def count_users(vendor: VendorUsers, speed: int) -> int:
+    postgres_engine = get_engine()
+    cur: cursor = postgres_engine.cursor()
+    cur.execute(
+        f"""
+        select count(distinct user_name)
+        from valid_tests
+        where user_name in (select * from {vendor.value})
+        and speed = {speed}
+        ;
+        """
+    )
+    return cur.fetchall()[0][0]
+
+
 def plot_histogram(x_values: List[float],
                    title: str,
                    x_label: str,
                    y_label: str,
                    bins: int,
                    _range: Tuple[int, int],
-                   size_of_tick = None):
+                   size_of_tick: int = None):
 
-    title = normalize_hebrew(title)
+    # title = normalize_hebrew(title)
     s = pd.Series(x_values)
     plt = s.plot(kind='hist', bins=bins, title=title, range=_range)
+
+    # plt.axes.set_title("Title", fontsize=15)
+    plt.set_xlabel("X Label", fontsize=12)
+    plt.set_ylabel("Y Label", fontsize=10)
+
     x_label = normalize_hebrew(x_label)
     y_label = normalize_hebrew(y_label)
     plt.set_xlabel(x_label)
@@ -97,40 +126,26 @@ def plot_histogram(x_values: List[float],
     first_bin, last_bin = _range
     if size_of_tick is None:
         size_of_tick = (last_bin + 1) // bins
-    plt.set_xticks(list(range(first_bin, last_bin + 1, size_of_tick)))
+    plt.set_xticks(list(range(first_bin, last_bin + 1, size_of_tick or 1)))
     return title
 
 
-def plot_website_ratios_histogram(website: Website, ratios: List[float]):
-    name_translate = {
-        "hot": "הוט",
-        "bezeq": "בזק",
-        "ookla": "אוקלה",
-        "google": "גוגל",
-        "netflix": "נטפליקס",
-    }
-
-    title = normalize_hebrew(f'התפלגות תוצאות בדיקות מהירות {name_translate[website.value]} - היסטוגרמה')
-    s = pd.Series(ratios)
-    plt = s.plot(kind='hist', bins=20, color='red', title=title, range=[0, 2])
-    xlabel = normalize_hebrew('יחס מהירות בפועל למהירות אתר בדיקה (1.0 = בדיקה מושלמת)')
-    plt.set_xlabel(xlabel)
-
-    ylable = normalize_hebrew("מספר בדיקות")
-    plt.set_xlabel(ylable)
-    for patch in plt.patches:
-        left, right = patch.xy
-        if left >= 1:  # color bars that are >= 1 green (actual speed was higher than website speed)
-            patch.set_color('green')
+def plot_website_ratios_histogram(ratios: List[float], title: str):
+    plt = plot_histogram(x_values=ratios,
+                         title=title,
+                         x_label='אתר בדיקת מהירות',
+                         y_label='מספר בדיקות',
+                         bins=20,
+                         _range=(0, 2))
     return plt
 
 
 def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float], speed: int):
     title = f'היסטוגרמה מהירות הורדה: ' +  vendor_to_hebrew_name(vendor_users)
-    title += ' תכנית ' + str(speed) + ' מגהביט'
+    title += ' תכנית ' + str(speed) + ' מגה-ביט'
     last_xtick = speed if speed < 200 else 220
     plt = plot_histogram(x_values=ratios,
-                         title=title,
+                         title=normalize_hebrew(title),
                          x_label='מהירות',
                          y_label='מספר בדיקות',
                          bins=speed // 10,
@@ -142,6 +157,7 @@ def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float], spe
         os.makedirs(snapshots_path)
 
     fig_path = snapshots_path / Path(title + ".png")
+    print(f"saving: {fig_path}")
     plot.savefig(fig_path)
     plot.show()
 
@@ -149,7 +165,7 @@ def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float], spe
 def set_graphical_context():
 
     sns.set(font='DejaVu Sans',
-            font_scale=True,
+            font_scale=0.8,
             rc={
                 'axes.axisbelow': False,
                 'axes.edgecolor': 'lightgrey',
@@ -179,18 +195,24 @@ def set_graphical_context():
 
 
 if __name__ == "__main__":
+    set_graphical_context()  # Make Matplotlib not suck at aesthetics
+
     # Website comparison histogram logic
     for website in [
         "netflix", "ookla", "bezeq", "google", "hot"
     ]:
         print(f"getting data for: '{website}'")
         ratios = get_speed_test_ratios(website)
-        plot_website_ratios_histogram(Website(website), ratios)
-        prefix = "classic_resources_"
-        plot.savefig(f'{prefix}{website}_ratios_histogram.png')
-        plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
+        title = f'התפלגות תוצאות בדיקות מהירות {WEBSITE_NAME_TRANSLATE[website]} - היסטוגרמה'
+        plot_website_ratios_histogram(ratios, normalize_hebrew(title))
+        # prefix = "classic_resources_"
 
-    set_graphical_context()  # Make Matplotlib not suck at aesthetics
+        snapshots_path = Path("question_snapshots") / Path('website_comparison_histograms')
+        if not os.path.exists(snapshots_path):
+            os.makedirs(snapshots_path)
+
+        plot.savefig(snapshots_path / Path(title + ".png"))
+        plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
 
     #  Random Normal Distribution (example):
     import numpy
@@ -204,7 +226,9 @@ if __name__ == "__main__":
     internet_speeds = [40, 100, 200]
     for users in [VendorUsers.Bezeq, VendorUsers.Hot, VendorUsers.Partner]:
         for speed in internet_speeds:
-
+            num_users = count_users(users, speed)
+            if num_users < 8:
+                print(f'not enough users for {users}, {speed} skipping')
             ground_truth_rates = get_ground_truth_speeds_by_vendor(users, speed)
             vendor_name_hebrew = normalize_hebrew(vendor_to_hebrew_name(users))
 
@@ -229,4 +253,5 @@ if __name__ == "__main__":
 
         fig_path = snapshots_path / Path(raw_title + ".png")
         plot.savefig(fig_path)
+        print(f"saving {fig_path}")
         plot.show()
