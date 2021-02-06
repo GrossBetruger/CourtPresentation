@@ -72,6 +72,20 @@ class CapacityOfServicePieHalfScreenPositions1920x1080(PlotPositions):
         self.on_plot_point = (776, 490)
 
 
+class WebsiteComparisonScreenPositions1920x1080(PlotPositions):
+    def __init__(self):
+        up = 490
+        down = 1028
+        left = 6
+        right = 1913
+        self.mouse_drag_positions = [
+                        (left, up),
+                        (right, up),
+                        (right, down)
+                    ]
+        self.on_plot_point = (776, 490)
+
+
 OVERSELL_QUESTIONS = {
     "מכירת יתר":
         {
@@ -94,14 +108,23 @@ OVERSELL_QUESTIONS = {
 CAPACITY_OF_SERVICE_QUESTIONS = {
     "נפח שירות":
         {
-            56: {TEXT_KEY: "נפח שירות חבילת 100 מגה-ביט דגימות בחיבור קווי - כל השעות", SLEEP_KEY: MEDIUM_SLEEP},
-            57: {TEXT_KEY: " נפח שירות חבילת 100 מגה-ביט דגימות בחיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
-            58: {TEXT_KEY: "נפח שירות חבילת 40 מגה-ביט דגימות בחיבור קווי - כל השעות", SLEEP_KEY: DEFAULT_SLEEP},
+            # 56: {TEXT_KEY: "נפח שירות חבילת 100 מגה-ביט דגימות בחיבור קווי - כל השעות", SLEEP_KEY: MEDIUM_SLEEP},
+            # 57: {TEXT_KEY: " נפח שירות חבילת 100 מגה-ביט דגימות בחיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
+            # 58: {TEXT_KEY: "נפח שירות חבילת 40 מגה-ביט דגימות בחיבור קווי - כל השעות", SLEEP_KEY: DEFAULT_SLEEP},
             # 59: {TEXT_KEY: "נפח שירות חבילת 40 מגה-ביט חיבור קווי - שעות העומס", SLEEP_KEY: HEAVY_SLEEP},
             # 60: {TEXT_KEY: "נפח שירות חבילת 100 מגה-ביט דגימות בחיבור קווי שרת מטמון בישראל - כל השעות", SLEEP_KEY: DEFAULT_SLEEP},
             # 61: {TEXT_KEY: "נפח שירות חבילת 100 מגה-ביט חיבור קווי שרת מטמון בישראל - שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
             # 62: {TEXT_KEY: "נפח שירות חבילת 40 מגה-ביט חיבור קווי שרת מטמון בישראל - כל השעות", SLEEP_KEY: DEFAULT_SLEEP},
             # 63: {TEXT_KEY: "נפח שירות חבילת 40 מגה-ביט חיבור קווי שרת מטמון בישראל - שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
+        },
+}
+
+WEBSITE_COMPARISON_QUESTIONS = {
+    "השוואת אתרי בדיקת מהירות ברשת":
+        {
+            64: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה מכל המקורות", SLEEP_KEY: 15},
+            65: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה מאתרים", SLEEP_KEY: 15},
+            66: {TEXT_KEY: "השוואת אתרי בדיקת מהירות אינטרנט למדידה בפועל - הורדה משרת מטמון בישראל", SLEEP_KEY: 15},
         },
 }
 
@@ -192,8 +215,6 @@ def record_positions():
 
 
 if __name__ == "__main__":
-    # record_positions()
-    # quit()
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_argument("--kiosk")
@@ -222,12 +243,18 @@ if __name__ == "__main__":
             title = OVERSELL_QUESTIONS[topic][question][TEXT_KEY]
             handle_question(topic, question, oversell_positions, sleep_time, title)
 
-    print(type(capacity_positions))
     for topic in CAPACITY_OF_SERVICE_QUESTIONS:
         for question in CAPACITY_OF_SERVICE_QUESTIONS[topic]:
-            sleep_time = CAPACITY_OF_SERVICE_QUESTIONS[topic][question][SLEEP_KEY]
-            title = CAPACITY_OF_SERVICE_QUESTIONS[topic][question][TEXT_KEY]
-            handle_question(topic, question, capacity_positions, sleep_time, title)
+                sleep_time = CAPACITY_OF_SERVICE_QUESTIONS[topic][question][SLEEP_KEY]
+                title = CAPACITY_OF_SERVICE_QUESTIONS[topic][question][TEXT_KEY]
+                handle_question(topic, question, capacity_positions, sleep_time, title)
+
+    website_comparison_plot_positions = WebsiteComparisonScreenPositions1920x1080()
+    for topic in WEBSITE_COMPARISON_QUESTIONS:
+        for question in WEBSITE_COMPARISON_QUESTIONS[topic]:
+            sleep_time = WEBSITE_COMPARISON_QUESTIONS[topic][question][SLEEP_KEY]
+            title = WEBSITE_COMPARISON_QUESTIONS[topic][question][TEXT_KEY]
+            handle_question(topic, question, website_comparison_plot_positions, sleep_time, title)
 
     sleep(1)
     driver.close()
