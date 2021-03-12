@@ -1,11 +1,13 @@
+from collections import defaultdict
+from enum import Enum
+
 import numpy as np
-import scipy.stats
 import pandas as pd
 import scipy
-
+import scipy.stats
 from psycopg2.extensions import cursor
+
 from utils import get_engine
-from enum import Enum
 
 DECIMAL_PLACES = 3
 
@@ -14,6 +16,25 @@ class Vendor(Enum):
     Bezeq = {"view": "bezeq_users", "name": "בזק"}
     HOT = {"view": "hot_users", "name": "הוט"}
     Partner = {"view": "partner_users", "name": "פרטנר"}
+
+
+class ConfidenceIntervalResult:
+    def __init__(
+            self,
+            confidence: float,
+            lower_bound: float,
+            upper_bound: float,
+    ):
+        self.confidence = confidence
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+
+    def to_dict(self):
+        return {
+            "confidence": self.confidence,
+            "lower_bound": self.lower_bound,
+            "upper_bound": self.upper_bound,
+        }
 
 
 def mean_confidence_interval(data, confidence=0.95):
@@ -82,7 +103,11 @@ def get_ground_truth_rate_means_by_vendor(vendor: Vendor, speed: int) -> pd.Seri
     return pd.Series(rows, dtype=np.float64)
 
 
-def calc_intervals_user_mean_speed_by_vendor(user_means: pd.Series, speed: int, vendor: Vendor):
+def calc_intervals_user_mean_speed_by_vendor(
+        user_means: pd.Series,
+        speed: int,
+        vendor: Vendor,
+        confidence: float) -> ConfidenceIntervalResult:
     confs = [.51, .80, .95]
 
     print("נתוני היסק סטטיסטי משתמשי " + vendor.value["name"] + " בתכנית :" + str(speed) + " מגה-ביט לשנייה (חיבור קווי)")
@@ -95,17 +120,20 @@ def calc_intervals_user_mean_speed_by_vendor(user_means: pd.Series, speed: int, 
     print()
 
     print("רווח בר סמך")
-    for confidence in confs:
-        mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means, confidence)
-        mean = round(mean, DECIMAL_PLACES)
-        lower_bound = round(lower_bound, DECIMAL_PLACES)
-        upper_bound = round(upper_bound, DECIMAL_PLACES)
-        assert mean == sample_mean
-        msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי " + vendor.value["name"] + " בתכנית " + str(
-            speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
-        print(msg)
-        print()
+    mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means, confidence)
+    mean = round(mean, DECIMAL_PLACES)
+    lower_bound = round(lower_bound, DECIMAL_PLACES)
+    upper_bound = round(upper_bound, DECIMAL_PLACES)
+    assert mean == sample_mean
+    res = ConfidenceIntervalResult(confidence=confidence, lower_bound=lower_bound,
+                                   upper_bound=upper_bound)
+
+    msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי " + vendor.value["name"] + " בתכנית " + str(
+        speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
+    print(msg)
     print()
+    print()
+    return res
 
 
 def calc_intervals_user_mean_speed(user_means: pd.Series, speed: int):
@@ -152,23 +180,32 @@ def calc_intervals_speed_test_website_comparisons():
         print()
 
 
+def prepare_for_googlesheets(table: dict):
+    return pd.DataFrame(table).to_csv(sep='\t')
+
+
 if __name__ == "__main__":
     # # Websites Confidence Intervals
     # calc_intervals_speed_test_website_comparisons()
     # quit()
-    #
+
     # # User Ground Truth Means Confidence Intervals
     # for speed in [100, 40, 200]:
     #     user_means = get_ground_truth_rate_means(speed)
     #     calc_intervals_user_mean_speed(user_means, speed)
 
     # Vendor Ground Truth Means Confidence Intervals
+    confidence = .99
+    speeds = [100, 40, 200]
+    result = defaultdict(lambda: defaultdict(str))
+
     for vendor in Vendor:
-        for user_speed in [100, 40 , 200]:
+        for user_speed in speeds:
             means = get_ground_truth_rate_means_by_vendor(vendor, user_speed)
             if len(means) < 9:
                 continue
 
-            calc_intervals_user_mean_speed_by_vendor(means, user_speed, vendor)
+            CI_result = calc_intervals_user_mean_speed_by_vendor(means, user_speed, vendor, confidence)
+            result[vendor.value["name"]][user_speed] = str(CI_result.lower_bound) + " - " + str(CI_result.upper_bound)
 
-
+    print(prepare_for_googlesheets(result))  # print as TSV

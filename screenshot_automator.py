@@ -1,14 +1,12 @@
 import os
-from enum import Enum
-
+import autopy
 import pyautogui
 
-
+from enum import Enum
 from abc import ABC
 from collections import OrderedDict
 from time import sleep
 from typing import Optional, List, Tuple
-
 from numpy import mean
 from pyautogui import Size
 from selenium import webdriver
@@ -23,7 +21,7 @@ HEAVY_SLEEP = 35  # for question that make the DB sweat
 
 DEFAULT_SLEEP = 2
 
-MEDIUM_SLEEP = 6
+MEDIUM_SLEEP = 10
 
 
 class PlotType(Enum):
@@ -118,10 +116,10 @@ OVERSELL_QUESTIONS = {
             # 50: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי שעות העומס", SLEEP_KEY: MEDIUM_SLEEP},
             # 51: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל", SLEEP_KEY: MEDIUM_SLEEP},
             # 52: {TEXT_KEY: "משתמשים במכירת יתר תכנית 200 מגה-ביט, חיבור קווי, שרת מטמון בישראל שעות העומס", SLEEP_KEY: DEFAULT_SLEEP},
-            # 53: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: DEFAULT_SLEEP},
+            53: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP},
             # 54: {TEXT_KEY: "משתמשי פרטנר (כל התכניות) במכירת יתר, חיבור קווי, שעות העומס", SLEEP_KEY: 80},
             # 55: {TEXT_KEY: "משתמשי בזק, תכנית 100 מגה-ביט במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP + 4},
-            67: {TEXT_KEY: "משתמשי בזק (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP + 4},
+            67: {TEXT_KEY: "משתמשי בזק (כל התכניות) במכירת יתר, חיבור קווי", SLEEP_KEY: MEDIUM_SLEEP},
         },
 }
 
@@ -179,8 +177,8 @@ def jump_to_question(driver: webdriver.Chrome, question_code: int):
 
 def take_question_snapshot(plot_positions: PlotPositions):
     hover_point = plot_positions.on_plot_point()
-    pyautogui.moveTo(hover_point)
-
+    # pyautogui.moveTo(hover_point)
+    autopy.mouse.smooth_move(*hover_point)
     points = plot_positions.mouse_drag_positions
     first_position = points[0]
     later_positions = points[1:]

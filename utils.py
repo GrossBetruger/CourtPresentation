@@ -1,10 +1,22 @@
+import os
+
 import psycopg2
 from arabic_reshaper import arabic_reshaper
 from bidi.algorithm import get_display
 
+PGPASS = "~/.pgpass"
+
+
+def read_password() -> str:
+    try:
+        assert os.path.exists(os.path.expanduser(PGPASS))
+        return open(os.path.expanduser(PGPASS)).read().strip()
+    except AssertionError:
+        print(f"expected db password in: {PGPASS}")
+
 
 def get_engine():
-    conn = psycopg2.connect("dbname='postgres' user='postgres' host='localhost' password=''")
+    conn = psycopg2.connect(f"dbname='postgres' user='postgres' host='localhost' password='{read_password()}'")
     return conn
 
 
