@@ -1,5 +1,6 @@
 from collections import defaultdict
 from enum import Enum
+from random import choice
 
 import numpy as np
 import pandas as pd
@@ -103,12 +104,58 @@ def get_ground_truth_rate_means_by_vendor(vendor: Vendor, speed: int) -> pd.Seri
     return pd.Series(rows, dtype=np.float64)
 
 
+def choose_k_random_results(results: list, k) -> list:
+    return [choice(results) for _ in range(k)]
+
+
+def get_user_tests_in_time_interval():
+    engine = get_engine()
+    cur: cursor = engine.cursor()
+    cur.execute(
+        """
+        with user_stats as (
+            select user_name,
+                   min(to_israel_dst_aware(timestamp)) first_test,
+                   min(to_israel_dst_aware(timestamp)) + interval '30' day first_test_plus_30_days,
+                   count(*) num_test
+            from valid_tests
+            where connection = 'LAN'
+            group by user_name
+        )
+        
+        select valid_tests.user_name,
+               ground_truth_rate,
+               speed,
+               valid_tests.connection,
+               num_test,
+               timestamp
+        from valid_tests
+        join user_stats on user_stats.user_name = valid_tests.user_name
+        where to_israel_dst_aware(timestamp) between first_test and first_test_plus_30_days
+        and connection = 'LAN'
+        and num_test >= 700
+        ;
+        """
+    )
+
+    results = defaultdict(list)
+
+    for r in cur.fetchall():
+        user_name, test_result, user_speed, _, _, _ = r
+        results[user_name].append({
+            "ground_truth_rate": test_result,
+            "speed": user_speed
+        })
+
+    return results
+
+
 def calc_intervals_user_mean_speed_by_vendor(
         user_means: pd.Series,
         speed: int,
         vendor: Vendor,
         confidence: float) -> ConfidenceIntervalResult:
-    confs = [.51, .80, .95]
+    # confs = [.51, .80, .95]
 
     print("נתוני היסק סטטיסטי משתמשי " + vendor.value["name"] + " בתכנית :" + str(speed) + " מגה-ביט לשנייה (חיבור קווי)")
     sample_mean = round(np.mean(user_means), DECIMAL_PLACES)
@@ -184,7 +231,22 @@ def prepare_for_googlesheets(table: dict):
     return pd.DataFrame(table).to_csv(sep='\t')
 
 
+def calc_confidence_mean_for_random_sample(k: int, conf: float):
+    all_user_tests = get_user_tests_in_time_interval()
+    h_vals = []
+    for user in all_user_tests:
+        user_tests = all_user_tests[user]
+        random_test_sample = [result["ground_truth_rate"] for result in
+                              choose_k_random_results(user_tests, k=k)]
+        mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=conf)
+        # print(user, mean_confidence_interval(random_test_sample, confidence=.95))
+        h_vals.append(h)
+    print(np.mean(h_vals))
+
+
 if __name__ == "__main__":
+    calc_confidence_mean_for_random_sample(k=500, conf=.8)
+
     # # Websites Confidence Intervals
     # calc_intervals_speed_test_website_comparisons()
     # quit()
