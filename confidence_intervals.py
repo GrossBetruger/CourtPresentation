@@ -1,6 +1,7 @@
 from collections import defaultdict
 from enum import Enum
 from random import choice
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -36,6 +37,60 @@ class ConfidenceIntervalResult:
             "lower_bound": self.lower_bound,
             "upper_bound": self.upper_bound,
         }
+
+
+class UserStats:
+    def __init__(
+            self,
+            user_name: str,
+            # mean: float,
+            speed: int,
+            infra: str,
+            isp: str,
+            # ci: ConfidenceIntervalResult,
+    ):
+        self.user_name = user_name
+        self.mean: Optional[float] = None
+        self.speed = speed
+        self.infra = infra
+        self.isp = isp
+        self.ci: Optional[ConfidenceIntervalResult] = None
+
+    def __str__(self) -> str:
+        fields = [
+            self.user_name, self.speed, self.infra,
+            self.isp, self.mean, self.ci.to_dict()
+        ]
+        fields = [str(f) for f in fields]
+        return "\n".join(fields)
+
+    def to_dict(self) -> dict:
+        fields = {
+            "user_name": self.user_name,
+            "speed": self.speed,
+            "isp": self.isp,
+            "infra": self.infra,
+            "mean": self.mean,
+        }
+
+        return {**self.ci.to_dict(), **fields}
+
+    def update_descriptive_stats(self, mean: float, ci: ConfidenceIntervalResult):
+        self.mean = mean
+        self.ci = ci
+
+    def vendor_pattern_check(self, vendor: str) -> bool:
+        return vendor in self.infra.lower() or vendor in self.isp.lower()
+
+    def bezeq_user(self) -> bool:
+        return self.vendor_pattern_check("bezeq")
+
+    def partner_user(self) -> bool:
+        return self.vendor_pattern_check("partner")
+
+    def hot_user(self)-> bool:
+        return self.vendor_pattern_check("hot")
+
 
 
 def mean_confidence_interval(data, confidence=0.95):
@@ -126,6 +181,8 @@ def get_user_tests_in_time_interval():
         select valid_tests.user_name,
                ground_truth_rate,
                speed,
+               infrastructure,
+               isp,
                valid_tests.connection,
                num_test,
                timestamp
@@ -141,10 +198,13 @@ def get_user_tests_in_time_interval():
     results = defaultdict(list)
 
     for r in cur.fetchall():
-        user_name, test_result, user_speed, _, _, _ = r
+        user_name, test_result, user_speed, infra, isp, _, _, _ = r
         results[user_name].append({
+            "user_name": user_name,
             "ground_truth_rate": test_result,
-            "speed": user_speed
+            "speed": user_speed,
+            "infra": infra,
+            "isp": isp,
         })
 
     return results
@@ -232,21 +292,40 @@ def prepare_for_googlesheets(table: dict):
 
 
 def calc_confidence_mean_for_random_sample(k: int, conf: float):
+    final_result = list()
     all_user_tests = get_user_tests_in_time_interval()
     h_vals = []
+
     for user in all_user_tests:
+        user_stats = UserStats(
+            user_name=all_user_tests[user][0]["user_name"],
+            speed=all_user_tests[user][0]["speed"],
+            infra=all_user_tests[user][0]["infra"],
+            isp=all_user_tests[user][0]["isp"],
+        )
+
         user_tests = all_user_tests[user]
         random_test_sample = [result["ground_truth_rate"] for result in
                               choose_k_random_results(user_tests, k=k)]
         mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=conf)
-        # print(user, mean_confidence_interval(random_test_sample, confidence=.95))
-        h_vals.append(h)
-    print(np.mean(h_vals))
+
+        ci = ConfidenceIntervalResult(
+            confidence=conf,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+        )
+
+        user_stats.update_descriptive_stats(mean=mean, ci=ci)
+        final_result.append(user_stats.to_dict())
+        print(user_stats)
+        print()
+    return final_result
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=500, conf=.8)
-
+    users = calc_confidence_mean_for_random_sample(k=500, conf=.8)
+    print(pd.DataFrame().from_records(users).to_csv(sep="\t"))
+    quit()
     # # Websites Confidence Intervals
     # calc_intervals_speed_test_website_comparisons()
     # quit()
