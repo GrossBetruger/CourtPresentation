@@ -294,8 +294,7 @@ def prepare_for_googlesheets(table: dict):
 def calc_confidence_mean_for_random_sample(k: int, conf: float):
     final_result = list()
     all_user_tests = get_user_tests_in_time_interval()
-    h_vals = []
-
+    h_values = defaultdict(list)
     for user in all_user_tests:
         user_stats = UserStats(
             user_name=all_user_tests[user][0]["user_name"],
@@ -308,6 +307,7 @@ def calc_confidence_mean_for_random_sample(k: int, conf: float):
         random_test_sample = [result["ground_truth_rate"] for result in
                               choose_k_random_results(user_tests, k=k)]
         mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=conf)
+        h_values[user_stats.speed].append(h)
 
         ci = ConfidenceIntervalResult(
             confidence=conf,
@@ -317,13 +317,14 @@ def calc_confidence_mean_for_random_sample(k: int, conf: float):
 
         user_stats.update_descriptive_stats(mean=mean, ci=ci)
         final_result.append(user_stats.to_dict())
-        print(user_stats)
-        print()
+    # print(max([user["upper_bound"] - user["lower_bound"] for user in final_result]))
+    for spd, h_vals in h_values.items():
+        print(f"max h for speed {k} = {max(h_vals)}")
     return final_result
 
 
 if __name__ == "__main__":
-    users = calc_confidence_mean_for_random_sample(k=500, conf=.8)
+    users = calc_confidence_mean_for_random_sample(k=300, conf=.95)
     print(pd.DataFrame().from_records(users).to_csv(sep="\t"))
     quit()
     # # Websites Confidence Intervals
