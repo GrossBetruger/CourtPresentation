@@ -1,7 +1,8 @@
 from collections import defaultdict
 from enum import Enum
+from itertools import chain
 from random import choice
-from typing import Optional
+from typing import Optional, List, Dict
 
 import numpy as np
 import pandas as pd
@@ -92,6 +93,15 @@ class UserStats:
         return self.vendor_pattern_check("hot")
 
 
+class TestResult:
+    def __init__(self, user_name: str, ground_truth_rate: float,
+                 speed: int, infra: str, isp: str):
+        self.user_name = user_name
+        self.ground_truth_rate = ground_truth_rate
+        self.speed = speed
+        self.infra = infra
+        self.isp = isp
+
 
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0 * np.array(data)
@@ -159,11 +169,11 @@ def get_ground_truth_rate_means_by_vendor(vendor: Vendor, speed: int) -> pd.Seri
     return pd.Series(rows, dtype=np.float64)
 
 
-def choose_k_random_results(results: list, k) -> list:
+def choose_k_random_results(results: list, k: int) -> list:
     return [choice(results) for _ in range(k)]
 
 
-def get_user_tests_in_time_interval():
+def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
     engine = get_engine()
     cur: cursor = engine.cursor()
     cur.execute(
@@ -199,13 +209,16 @@ def get_user_tests_in_time_interval():
 
     for r in cur.fetchall():
         user_name, test_result, user_speed, infra, isp, _, _, _ = r
-        results[user_name].append({
-            "user_name": user_name,
-            "ground_truth_rate": test_result,
-            "speed": user_speed,
-            "infra": infra,
-            "isp": isp,
-        })
+
+        results[user_name].append(
+            TestResult(
+                user_name=user_name,
+                ground_truth_rate=test_result,
+                speed=user_speed,
+                infra=infra,
+                isp=isp
+            )
+        )
 
     return results
 
@@ -291,41 +304,88 @@ def prepare_for_googlesheets(table: dict):
     return pd.DataFrame(table).to_csv(sep='\t')
 
 
-def calc_confidence_mean_for_random_sample(k: int, conf: float):
-    final_result = list()
-    all_user_tests = get_user_tests_in_time_interval()
-    h_values = defaultdict(list)
-    for user in all_user_tests:
-        user_stats = UserStats(
-            user_name=all_user_tests[user][0]["user_name"],
-            speed=all_user_tests[user][0]["speed"],
-            infra=all_user_tests[user][0]["infra"],
-            isp=all_user_tests[user][0]["isp"],
-        )
+def choose_confidence_by_sample_size(n: int) -> float:
+    #  CI with probability 1 - 5%/N (N=num of users int this slice)
+    return 1 - 0.05 / n
 
-        user_tests = all_user_tests[user]
-        random_test_sample = [result["ground_truth_rate"] for result in
-                              choose_k_random_results(user_tests, k=k)]
-        mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=conf)
-        h_values[user_stats.speed].append(h)
+
+def calcuate_ci_for_user_group(user_group: List[UserStats],
+                               user_group_tests: List[TestResult],
+                               test_sample_size: int) -> List[UserStats]:
+
+    confidence_level = choose_confidence_by_sample_size(len(user_group))
+
+    result = list()
+    for user in user_group:
+
+        random_test_sample = [result.ground_truth_rate for result in
+                              choose_k_random_results(user_group_tests, k=test_sample_size)]
+
+        mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=confidence_level)
+        # h_values[user_stats.speed].append(h)
 
         ci = ConfidenceIntervalResult(
-            confidence=conf,
+            confidence=confidence_level,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
         )
 
-        user_stats.update_descriptive_stats(mean=mean, ci=ci)
-        final_result.append(user_stats.to_dict())
-    # print(max([user["upper_bound"] - user["lower_bound"] for user in final_result]))
-    for spd, h_vals in h_values.items():
-        print(f"max h for speed {k} = {max(h_vals)}")
-    return final_result
+        user.update_descriptive_stats(mean=mean, ci=ci)
+        result.append(user)
+    return result
+
+
+def flatten_tests(user_list: List[UserStats], tests: Dict[str, List[TestResult]]) -> List[TestResult]:
+    return list(chain(*[test for user, test in tests.items()
+            if user in [u.user_name for u in user_list]]))
+
+
+def calc_confidence_mean_for_random_sample(k: int):
+    all_user_tests = get_user_tests_in_time_interval()
+    print(len(all_user_tests))
+    all_users = []
+    for user in all_user_tests:
+        user_stats = UserStats(
+            user_name=all_user_tests[user][0].user_name,
+            speed = all_user_tests[user][0].speed,
+            infra = all_user_tests[user][0].infra,
+            isp = all_user_tests[user][0].isp,
+        )
+        all_users.append(user_stats)
+
+    bezeq_users = [u for u in all_users
+                   if u.isp == 'Bezeq International-Ltd'
+                   and u.infra == 'BEZEQ']
+
+
+    bezeq_tests = flatten_tests(bezeq_users, all_user_tests)
+    bezeq_users = calcuate_ci_for_user_group(bezeq_users, bezeq_tests, k)
+    print(f"bezeq users (n={len(bezeq_users)}):")
+    print(pd.DataFrame().from_records([u.to_dict() for u in bezeq_users]).to_csv(sep="\t"))
+
+    hot_users = [u for u in all_users
+                 if u.isp == 'Hot-Net internet services Ltd.'
+                 and u.infra == 'HOT']
+    hot_tests = flatten_tests(hot_users, all_user_tests)
+    hot_users = calcuate_ci_for_user_group(hot_users, hot_tests, k)
+
+    print(f"hot users (n={len(hot_users)}")
+    print(pd.DataFrame().from_records([u.to_dict() for u in hot_users]).to_csv(sep="\t"))
+
+    partner_users = [u for u in all_users
+                     if u.isp == 'Partner Communications Ltd.'
+                     and u.infra == 'PARTNER']
+    partner_tests = flatten_tests(partner_users, all_user_tests)
+    partner_users = calcuate_ci_for_user_group(partner_users, partner_tests, k)
+    print(f"partner users (n={len(partner_users)}")
+    print(pd.DataFrame().from_records([u.to_dict() for u in partner_users]).to_csv(sep="\t"))
+
+    # return final_result
 
 
 if __name__ == "__main__":
-    users = calc_confidence_mean_for_random_sample(k=300, conf=.95)
-    print(pd.DataFrame().from_records(users).to_csv(sep="\t"))
+    calc_confidence_mean_for_random_sample(k=300)
+
     quit()
     # # Websites Confidence Intervals
     # calc_intervals_speed_test_website_comparisons()
