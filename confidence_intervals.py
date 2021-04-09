@@ -318,8 +318,9 @@ def calcuate_ci_for_user_group(user_group: List[UserStats],
     result = list()
     for user in user_group:
 
+        user_tests = [test for test in user_group_tests if test.user_name == user.user_name]
         random_test_sample = [result.ground_truth_rate for result in
-                              choose_k_random_results(user_group_tests, k=test_sample_size)]
+                              choose_k_random_results(user_tests, k=test_sample_size)]
 
         mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=confidence_level)
         # h_values[user_stats.speed].append(h)
@@ -340,9 +341,15 @@ def flatten_tests(user_list: List[UserStats], tests: Dict[str, List[TestResult]]
             if user in [u.user_name for u in user_list]]))
 
 
-def calc_confidence_mean_for_random_sample(k: int):
+def count_defaulted_users_by_upper_bound(users: List[UserStats], default_rate: float) -> int:
+    count = int()
+    for user in users:
+        if user.ci.upper_bound / user.speed  <= default_rate:
+    return count
+
+
+def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
     all_user_tests = get_user_tests_in_time_interval()
-    print(len(all_user_tests))
     all_users = []
     for user in all_user_tests:
         user_stats = UserStats(
@@ -357,10 +364,11 @@ def calc_confidence_mean_for_random_sample(k: int):
                    if u.isp == 'Bezeq International-Ltd'
                    and u.infra == 'BEZEQ']
 
-
     bezeq_tests = flatten_tests(bezeq_users, all_user_tests)
     bezeq_users = calcuate_ci_for_user_group(bezeq_users, bezeq_tests, k)
     print(f"bezeq users (n={len(bezeq_users)}):")
+    f"""defaulted bezeq users with default rate of {default_rate}:
+     {count_defaulted_users_by_upper_bound(bezeq_users, default_rate)}"""
     print(pd.DataFrame().from_records([u.to_dict() for u in bezeq_users]).to_csv(sep="\t"))
 
     hot_users = [u for u in all_users
@@ -368,8 +376,9 @@ def calc_confidence_mean_for_random_sample(k: int):
                  and u.infra == 'HOT']
     hot_tests = flatten_tests(hot_users, all_user_tests)
     hot_users = calcuate_ci_for_user_group(hot_users, hot_tests, k)
-
-    print(f"hot users (n={len(hot_users)}")
+    print(f"hot users (n={len(hot_users)})")
+    f"""defaulted hot users with default rate of {default_rate}:
+     {count_defaulted_users_by_upper_bound(hot_users, default_rate)}"""
     print(pd.DataFrame().from_records([u.to_dict() for u in hot_users]).to_csv(sep="\t"))
 
     partner_users = [u for u in all_users
@@ -378,14 +387,13 @@ def calc_confidence_mean_for_random_sample(k: int):
     partner_tests = flatten_tests(partner_users, all_user_tests)
     partner_users = calcuate_ci_for_user_group(partner_users, partner_tests, k)
     print(f"partner users (n={len(partner_users)}")
+    f"""defaulted partner users with default rate of {default_rate}:
+     {count_defaulted_users_by_upper_bound(partner_users, default_rate)}"""
     print(pd.DataFrame().from_records([u.to_dict() for u in partner_users]).to_csv(sep="\t"))
-
-    # return final_result
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=300)
-
+    calc_confidence_mean_for_random_sample(k=300, default_rate=.67)
     quit()
     # # Websites Confidence Intervals
     # calc_intervals_speed_test_website_comparisons()
