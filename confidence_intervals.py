@@ -367,9 +367,11 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
 
     bezeq_tests = flatten_tests(bezeq_users, all_user_tests)
     bezeq_users = calcuate_ci_for_user_group(bezeq_users, bezeq_tests, k)
+    defaulted_bezeq = count_defaulted_users_by_upper_bound(bezeq_users, default_rate)
     print(f"bezeq users (n={len(bezeq_users)}):")
-    f"""defaulted bezeq users with default rate of {default_rate}:
-     {count_defaulted_users_by_upper_bound(bezeq_users, default_rate)}"""
+    print(f"""defaulted bezeq users with default rate of {default_rate}:
+     {defaulted_bezeq}""")
+    print(f"bezeq default rate: {defaulted_bezeq / len(bezeq_users)}")
     print(pd.DataFrame().from_records([u.to_dict() for u in bezeq_users]).to_csv(sep="\t"))
 
     hot_users = [u for u in all_users
@@ -377,9 +379,11 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
                  and u.infra == 'HOT']
     hot_tests = flatten_tests(hot_users, all_user_tests)
     hot_users = calcuate_ci_for_user_group(hot_users, hot_tests, k)
+    defaulted_hot = count_defaulted_users_by_upper_bound(hot_users, default_rate)
     print(f"hot users (n={len(hot_users)})")
-    f"""defaulted hot users with default rate of {default_rate}:
-     {count_defaulted_users_by_upper_bound(hot_users, default_rate)}"""
+    print(f"""defaulted hot users with default rate of {default_rate}:
+     {defaulted_hot}""")
+    print(f"hot default rate: {defaulted_hot / len(hot_users)}")
     print(pd.DataFrame().from_records([u.to_dict() for u in hot_users]).to_csv(sep="\t"))
 
     partner_users = [u for u in all_users
@@ -387,14 +391,16 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
                      and u.infra == 'PARTNER']
     partner_tests = flatten_tests(partner_users, all_user_tests)
     partner_users = calcuate_ci_for_user_group(partner_users, partner_tests, k)
+    defaulted_partners = count_defaulted_users_by_upper_bound(partner_users, default_rate)
     print(f"partner users (n={len(partner_users)}")
-    f"""defaulted partner users with default rate of {default_rate}:
-     {count_defaulted_users_by_upper_bound(partner_users, default_rate)}"""
+    print(f"""defaulted partner users with default rate of {default_rate}:
+     {defaulted_partners}""")
+    print(f"partner default rate: {defaulted_partners / len(partner_users)}")
     print(pd.DataFrame().from_records([u.to_dict() for u in partner_users]).to_csv(sep="\t"))
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=300, default_rate=.67)
+    calc_confidence_mean_for_random_sample(k=300, default_rate=.5)
     quit()
     # # Websites Confidence Intervals
     # calc_intervals_speed_test_website_comparisons()
