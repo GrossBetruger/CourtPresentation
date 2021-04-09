@@ -345,6 +345,7 @@ def count_defaulted_users_by_upper_bound(users: List[UserStats], default_rate: f
     count = int()
     for user in users:
         if user.ci.upper_bound / user.speed  <= default_rate:
+            count += 1
     return count
 
 
