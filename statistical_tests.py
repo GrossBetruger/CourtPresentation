@@ -138,17 +138,17 @@ def linear_regression(x_values: List[float], y_values: List[float],
     ax.legend(facecolor='white')
     plt.savefig(dump_path)
     plt.show()
-    print(f"r squared: {r_value ** 2}")
+    print(f"r squared: {r_value ** 2}, p-value: {p_value}")
 
 
 if __name__ == "__main__":
     # Student's T-Test Logic
-
-    vendor_capacity_data = get_capacity_data()
-    t_score, p_value = ttest_ind([x[1] for x in vendor_capacity_data["hot"]],
-                                 [x[1] for x in vendor_capacity_data["bezeq"]])
-
-    print("t test score:", t_score, "p value:", p_value)
+    #
+    # vendor_capacity_data = get_capacity_data()
+    # t_score, p_value = ttest_ind([x[1] for x in vendor_capacity_data["hot"]],
+    #                              [x[1] for x in vendor_capacity_data["bezeq"]])
+    #
+    # print("t test score:", t_score, "p value:", p_value)
 
     # Linear Regression Logic
     household_stats = get_household_data()
