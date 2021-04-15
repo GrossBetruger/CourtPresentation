@@ -246,6 +246,19 @@ def count_defaulted_users_by_upper_bound(users: List[UserStats], default_rate: f
     return count
 
 
+def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_name: str,
+                                      tests: Dict[str, List[TestResult]],
+                                      k: int, default_rate: float):
+    test_random_sample = flatten_tests(user_group, tests)
+    users_with_ci_results = calcuate_ci_for_user_group(user_group, test_random_sample, k)
+    defaulted_users = count_defaulted_users_by_upper_bound(users_with_ci_results, default_rate)
+    print(f"{user_group_name} users (n={len(user_group)}")
+    print(f"""defaulted {user_group_name} with default rate of {default_rate}:
+        {defaulted_users}""")
+    print(f"{user_group_name} default rate: {defaulted_users / len(user_group)}")
+    print(pd.DataFrame().from_records([u.to_dict() for u in users_with_ci_results]).to_csv(sep="\t"))
+
+
 def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
     all_user_tests = get_user_tests_in_time_interval()
     all_users = []
@@ -262,38 +275,21 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
                    if u.isp == 'Bezeq International-Ltd'
                    and u.infra == 'BEZEQ']
 
-    bezeq_tests = flatten_tests(bezeq_users, all_user_tests)
-    bezeq_users = calcuate_ci_for_user_group(bezeq_users, bezeq_tests, k)
-    defaulted_bezeq = count_defaulted_users_by_upper_bound(bezeq_users, default_rate)
-    print(f"bezeq users (n={len(bezeq_users)}):")
-    print(f"""defaulted bezeq users with default rate of {default_rate}:
-     {defaulted_bezeq}""")
-    print(f"bezeq default rate: {defaulted_bezeq / len(bezeq_users)}")
-    print(pd.DataFrame().from_records([u.to_dict() for u in bezeq_users]).to_csv(sep="\t"))
+    calculate_ci_stats_for_user_group(bezeq_users, "bezeq", all_user_tests, k, default_rate)
 
     hot_users = [u for u in all_users
                  if u.isp == 'Hot-Net internet services Ltd.'
                  and u.infra == 'HOT']
-    hot_tests = flatten_tests(hot_users, all_user_tests)
-    hot_users = calcuate_ci_for_user_group(hot_users, hot_tests, k)
-    defaulted_hot = count_defaulted_users_by_upper_bound(hot_users, default_rate)
-    print(f"hot users (n={len(hot_users)})")
-    print(f"""defaulted hot users with default rate of {default_rate}:
-     {defaulted_hot}""")
-    print(f"hot default rate: {defaulted_hot / len(hot_users)}")
-    print(pd.DataFrame().from_records([u.to_dict() for u in hot_users]).to_csv(sep="\t"))
+
+    calculate_ci_stats_for_user_group(hot_users, "hot", all_user_tests, k, default_rate)
 
     partner_users = [u for u in all_users
                      if u.isp == 'Partner Communications Ltd.'
                      and u.infra == 'PARTNER']
-    partner_tests = flatten_tests(partner_users, all_user_tests)
-    partner_users = calcuate_ci_for_user_group(partner_users, partner_tests, k)
-    defaulted_partners = count_defaulted_users_by_upper_bound(partner_users, default_rate)
-    print(f"partner users (n={len(partner_users)}")
-    print(f"""defaulted partner users with default rate of {default_rate}:
-     {defaulted_partners}""")
-    print(f"partner default rate: {defaulted_partners / len(partner_users)}")
-    print(pd.DataFrame().from_records([u.to_dict() for u in partner_users]).to_csv(sep="\t"))
+
+    calculate_ci_stats_for_user_group(partner_users, "partner", all_user_tests, k, default_rate)
+
+    calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rate)
 
 
 if __name__ == "__main__":
