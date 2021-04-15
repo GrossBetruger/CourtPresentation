@@ -124,51 +124,6 @@ def get_speed_test_websites_rates(website: str):
     """
 
 
-def get_ground_truth_rate_means(speed: int) -> pd.Series:
-    engine = get_engine()
-    cur: cursor = engine.cursor()
-    cur.execute(
-        """
-        select avg(ground_truth_rate) user_mean from valid_tests
-        where speed = {}
-        and connection = 'LAN'
-        group by user_name
-        ;
-        """.format(speed)
-    )
-
-    rows = []
-
-    for r in cur.fetchall():
-        mean, = r
-        rows.append(mean)
-
-    return pd.Series(rows, dtype=np.float64)
-
-
-def get_ground_truth_rate_means_by_vendor(vendor: Vendor, speed: int) -> pd.Series:
-    engine = get_engine()
-    cur: cursor = engine.cursor()
-    cur.execute(
-        """
-        select avg(ground_truth_rate) mean_ground_truth_rate
-        from valid_tests
-        where user_name in (select * from {})
-        and speed = {}
-        and connection = 'LAN'
-        group by user_name
-        ;
-        """.format(vendor.value["view"], speed)
-    )
-
-    rows = []
-    for r in cur.fetchall():
-        mean, = r
-        rows.append(mean)
-
-    return pd.Series(rows, dtype=np.float64)
-
-
 def choose_k_random_results(results: list, k: int) -> list:
     return [choice(results) for _ in range(k)]
 
@@ -221,64 +176,6 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
         )
 
     return results
-
-
-def calc_intervals_user_mean_speed_by_vendor(
-        user_means: pd.Series,
-        speed: int,
-        vendor: Vendor,
-        confidence: float) -> ConfidenceIntervalResult:
-    # confs = [.51, .80, .95]
-
-    print("נתוני היסק סטטיסטי משתמשי " + vendor.value["name"] + " בתכנית :" + str(speed) + " מגה-ביט לשנייה (חיבור קווי)")
-    sample_mean = round(np.mean(user_means), DECIMAL_PLACES)
-    print("מהירות משתמש ממוצעת: " + str(sample_mean) + " מגה-ביט לשנייה")
-    # print("Mean user speed:", sample_mean)
-    standard_deviation_population = round(np.std(user_means, ddof=1), DECIMAL_PLACES)
-    print("סטיית תקן ממוצעי משתמשים (מדגם):", standard_deviation_population)
-    print("מספר משתמשים: ", len(user_means))
-    print()
-
-    print("רווח בר סמך")
-    mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means, confidence)
-    mean = round(mean, DECIMAL_PLACES)
-    lower_bound = round(lower_bound, DECIMAL_PLACES)
-    upper_bound = round(upper_bound, DECIMAL_PLACES)
-    assert mean == sample_mean
-    res = ConfidenceIntervalResult(confidence=confidence, lower_bound=lower_bound,
-                                   upper_bound=upper_bound)
-
-    msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי " + vendor.value["name"] + " בתכנית " + str(
-        speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
-    print(msg)
-    print()
-    print()
-    return res
-
-
-def calc_intervals_user_mean_speed(user_means: pd.Series, speed: int):
-    confs = [.95, .99, .999]
-
-    print("נתוני היסק סטטיסטי משתמשי תכנית " + str(speed) + " מגה-ביט לשנייה (חיבור קווי)")
-    sample_mean = round(np.mean(user_means), DECIMAL_PLACES)
-    print("מהירות משתמש ממוצעת: " + str(sample_mean) + " מגה-ביט לשנייה")
-    # print("Mean user speed:", sample_mean)
-    standard_deviation_population = round(np.std(user_means,  ddof=1), DECIMAL_PLACES)
-    print("סטיית תקן ממוצעי משתמשים (מדגם):", standard_deviation_population)
-    print("מספר משתמשים: ", len(user_means))
-    print()
-
-    print("רווח בר סמך")
-    for confidence in confs:
-        mean, lower_bound, upper_bound, h = mean_confidence_interval(user_means, confidence)
-        mean = round(mean, DECIMAL_PLACES)
-        lower_bound = round(lower_bound, DECIMAL_PLACES)
-        upper_bound = round(upper_bound, DECIMAL_PLACES)
-        assert mean == sample_mean
-        msg = "ברמת סמך של: " + str(confidence * 100) + "%" + " המהירות הממוצעת באוכלוסיית משתמשי תכנית: " + str(speed) + " מגה-ביט היא בין: " + str(lower_bound) + " ל: " + str(upper_bound) + " מגה-ביט לשנייה"
-        print(msg)
-        print()
-    print()
 
 
 def calc_intervals_speed_test_website_comparisons():
@@ -401,28 +298,3 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
 
 if __name__ == "__main__":
     calc_confidence_mean_for_random_sample(k=300, default_rate=.5)
-    quit()
-    # # Websites Confidence Intervals
-    # calc_intervals_speed_test_website_comparisons()
-    # quit()
-
-    # # User Ground Truth Means Confidence Intervals
-    # for speed in [100, 40, 200]:
-    #     user_means = get_ground_truth_rate_means(speed)
-    #     calc_intervals_user_mean_speed(user_means, speed)
-
-    # Vendor Ground Truth Means Confidence Intervals
-    confidence = .99
-    speeds = [100, 40, 200]
-    result = defaultdict(lambda: defaultdict(str))
-
-    for vendor in Vendor:
-        for user_speed in speeds:
-            means = get_ground_truth_rate_means_by_vendor(vendor, user_speed)
-            if len(means) < 9:
-                continue
-
-            CI_result = calc_intervals_user_mean_speed_by_vendor(means, user_speed, vendor, confidence)
-            result[vendor.value["name"]][user_speed] = str(CI_result.lower_bound) + " - " + str(CI_result.upper_bound)
-
-    print(prepare_for_googlesheets(result))  # print as TSV
