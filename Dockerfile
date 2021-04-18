@@ -1,14 +1,7 @@
-#FROM postgres
-#FROM fedora
-#FROM python
-FROM postgres 
+FROM postgres:13 
 
-ADD testers.csv testers.csv
+COPY servile.sql /docker-entrypoint-initdb.d/
 
-
-RUN mv testers.csv /var/lib/postgresql/data/testers.csv
-
-#RUN dnf install 'dnf-command(config-manager)'
 
 #RUN dnf config-manager --set-disabled fedora-cisco-openh264
 
