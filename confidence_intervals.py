@@ -1,8 +1,9 @@
+import random
 from collections import defaultdict
 from enum import Enum
 from itertools import chain
 from random import choice
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple, Any
 
 import numpy as np
 import pandas as pd
@@ -89,7 +90,7 @@ class UserStats:
     def partner_user(self) -> bool:
         return self.vendor_pattern_check("partner")
 
-    def hot_user(self)-> bool:
+    def hot_user(self) -> bool:
         return self.vendor_pattern_check("hot")
 
 
@@ -103,12 +104,24 @@ class TestResult:
         self.isp = isp
 
 
-def mean_confidence_interval(data, confidence=0.95):
-    a = 1.0 * np.array(data)
-    n = len(a)
-    m, se = np.mean(a), scipy.stats.sem(a)
-    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
-    return m, m-h, m+h, h
+def calc_confidence_interval(data, confidence=0.95):
+    m = np.mean(data)
+    lower, upper = scipy.stats.t.interval(confidence, len(data) - 1, loc=m, scale=scipy.stats.sem(data))
+    h = m - lower
+    return m, lower, upper, h
+
+
+def manual_ci_sample(x_values: List[float], confidence: float = 0.95) -> Tuple[Any, Any]:
+    def calc_t(conf: float, degrees_of_freedom):
+        alpha = (1 - conf) / 2.
+        t_value = scipy.stats.t.ppf(1 - alpha, df=degrees_of_freedom)
+        return t_value
+
+    m = np.mean(x_values)
+    t = calc_t(confidence, len(x_values) - 1)
+
+    h = t * np.std(x_values, ddof=1) / np.sqrt(len(x_values))
+    return m - h, m + h
 
 
 def get_speed_test_websites_rates(website: str):
@@ -190,10 +203,11 @@ def calc_intervals_speed_test_website_comparisons():
         print("מספר דגימות (N): {}".format(len(rates)))
         confs = [.95, .99, .999]
         for confidence in confs:
-            mean, lower_bound, upper_bound, h = mean_confidence_interval(rates, confidence)
+            mean, lower_bound, upper_bound, h = calc_confidence_interval(rates, confidence)
             lower_bound = round(lower_bound, DECIMAL_PLACES)
             upper_bound = round(upper_bound, DECIMAL_PLACES)
-            print("ברמת סמך של {}% יחס מהירות בפועל \ למהירות בדיקה באתר בדיקת המהירות של {} הוא בין {} ל-{}".format(confidence * 100, website, lower_bound, upper_bound))
+            print("ברמת סמך של {}% יחס מהירות בפועל \ למהירות בדיקה באתר בדיקת המהירות של {} הוא בין {} ל-{}".format(
+                confidence * 100, website, lower_bound, upper_bound))
         print()
 
 
@@ -209,17 +223,15 @@ def choose_confidence_by_sample_size(n: int) -> float:
 def calcuate_ci_for_user_group(user_group: List[UserStats],
                                user_group_tests: List[TestResult],
                                test_sample_size: int) -> List[UserStats]:
-
     confidence_level = choose_confidence_by_sample_size(len(user_group))
 
     result = list()
     for user in user_group:
-
         user_tests = [test for test in user_group_tests if test.user_name == user.user_name]
         random_test_sample = [result.ground_truth_rate for result in
                               choose_k_random_results(user_tests, k=test_sample_size)]
 
-        mean, lower_bound, upper_bound, h = mean_confidence_interval(random_test_sample, confidence=confidence_level)
+        mean, lower_bound, upper_bound, h = calc_confidence_interval(random_test_sample, confidence=confidence_level)
         # h_values[user_stats.speed].append(h)
 
         ci = ConfidenceIntervalResult(
@@ -235,13 +247,13 @@ def calcuate_ci_for_user_group(user_group: List[UserStats],
 
 def flatten_tests(user_list: List[UserStats], tests: Dict[str, List[TestResult]]) -> List[TestResult]:
     return list(chain(*[test for user, test in tests.items()
-            if user in [u.user_name for u in user_list]]))
+                        if user in [u.user_name for u in user_list]]))
 
 
 def count_defaulted_users_by_upper_bound(users: List[UserStats], default_rate: float) -> int:
     count = int()
     for user in users:
-        if user.ci.upper_bound / user.speed  <= default_rate:
+        if user.ci.upper_bound / user.speed <= default_rate:
             count += 1
     return count
 
@@ -265,9 +277,9 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
     for user in all_user_tests:
         user_stats = UserStats(
             user_name=all_user_tests[user][0].user_name,
-            speed = all_user_tests[user][0].speed,
-            infra = all_user_tests[user][0].infra,
-            isp = all_user_tests[user][0].isp,
+            speed=all_user_tests[user][0].speed,
+            infra=all_user_tests[user][0].infra,
+            isp=all_user_tests[user][0].isp,
         )
         all_users.append(user_stats)
 
