@@ -13,11 +13,16 @@ class Vendor:
     infra: str
 
 
-def test_normality(data, alpha=0.05):
+def test_normality(data, alpha=0.05, name="sample"):
     statistic, p_value = shapiro(data)
     print(statistic, p_value)
-    pyplot.hist(data)
+    pyplot.hist(data, bins=len(data) // 2)
+    pyplot.title(name)
+    pyplot.xlabel("Average Speed")
+    pyplot.ylabel("Number of Users")
+    pyplot.savefig("normality_" + name +".png")
     pyplot.show()
+    pyplot.clf()
     return p_value >= alpha
 
 
@@ -47,9 +52,9 @@ if __name__ == "__main__":
     hot = Vendor(name='HOT', isp='Hot-Net internet services Ltd.', infra='HOT')
     partner = Vendor(name='Partner', isp='Partner Communications Ltd.', infra='PARTNER')
 
-    for vend in [bezeq, hot, partner]:
-        user_averages = get_pure_vendor_users(bezeq)
-        print(f"{vend.name}: sample is coming from a normal distribution: {test_normality(user_averages)}")
+    for vend in [bezeq, hot]:
+        user_averages = get_pure_vendor_users(vend)
+        print(f"{vend.name}: sample is coming from a normal distribution: {test_normality(user_averages, name=vend.name)}")
 
     random_results = scipy.stats.norm.rvs(loc=5, scale=3, size=100)
     bi_modal = [10] * 5 + [100] * 5
