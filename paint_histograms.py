@@ -264,4 +264,4 @@ if __name__ == "__main__":
 
 
     # Ground truth rate histogram and violin plot logic
-    # ground_truth_main()
+    ground_truth_main()

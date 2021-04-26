@@ -13,6 +13,22 @@ from psycopg2.extensions import cursor
 
 from utils import get_engine
 
+USER_SPEED_PROGRAM_KEY_HEBREW = "תכנית"
+
+ISP_KEY_HEBREW = "ספקית"
+
+INFRASTRUCTURE_KEY_HEBREW = "תשתית"
+
+SAMPLE_AVERAGE_SPEED_KEY_HEBREW = "מהירות ממוצעת (מדגם)"
+
+UPPER_BOUND_KEY_HEBREW = "גבול עליון"
+
+LOWER_BOUND_KEY_HEBREW = "גבול תחתון"
+
+CONFIDENCE_LEVEL_KEY_HEBREW = "רמת סמך"
+
+USER_NAME_HEBREW_KEY = "שם משתמש"
+
 DECIMAL_PLACES = 3
 
 
@@ -35,9 +51,9 @@ class ConfidenceIntervalResult:
 
     def to_dict(self):
         return {
-            "confidence": self.confidence,
-            "lower_bound": self.lower_bound,
-            "upper_bound": self.upper_bound,
+            CONFIDENCE_LEVEL_KEY_HEBREW: self.confidence,
+            LOWER_BOUND_KEY_HEBREW: self.lower_bound,
+            UPPER_BOUND_KEY_HEBREW: self.upper_bound,
         }
 
 
@@ -68,11 +84,11 @@ class UserStats:
 
     def to_dict(self) -> dict:
         fields = {
-            "user_name": self.user_name,
-            "speed": self.speed,
-            "isp": self.isp,
-            "infra": self.infra,
-            "mean": self.mean,
+            USER_NAME_HEBREW_KEY: self.user_name,
+            "תכנית": self.speed,
+            "ספקית": self.isp,
+            "תשתית": self.infra,
+            "מהירות ממוצעת (מדגם)": self.mean,
         }
 
         return {**self.ci.to_dict(), **fields}
@@ -268,7 +284,18 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_na
     print(f"""defaulted {user_group_name} with default rate of {default_rate}:
         {defaulted_users}""")
     print(f"{user_group_name} default rate: {defaulted_users / len(user_group)}")
-    print(pd.DataFrame().from_records([u.to_dict() for u in users_with_ci_results]).to_csv(sep="\t"))
+    columns = [USER_NAME_HEBREW_KEY,
+               USER_SPEED_PROGRAM_KEY_HEBREW,
+               ISP_KEY_HEBREW,
+               INFRASTRUCTURE_KEY_HEBREW,
+               SAMPLE_AVERAGE_SPEED_KEY_HEBREW,
+               LOWER_BOUND_KEY_HEBREW,
+               UPPER_BOUND_KEY_HEBREW]
+
+    print(pd.DataFrame()
+          .from_records([u.to_dict() for u in users_with_ci_results])
+          .sort_values(USER_NAME_HEBREW_KEY)
+          .to_csv(sep="\t", columns=columns))
 
 
 def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
