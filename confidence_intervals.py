@@ -130,8 +130,8 @@ def calc_confidence_interval(data, confidence=0.95):
 def manual_ci_sample(x_values: List[float], confidence: float = 0.95) -> Tuple[Any, Any]:
     def calc_t(conf: float, degrees_of_freedom):
         alpha = (1 - conf) / 2.
-        t_value = scipy.stats.t.ppf(1 - alpha, df=degrees_of_freedom)
-        return t_value
+        t_score = scipy.stats.t.ppf(1 - alpha, df=degrees_of_freedom)
+        return t_score
 
     m = np.mean(x_values)
     t = calc_t(confidence, len(x_values) - 1)
@@ -276,14 +276,16 @@ def count_defaulted_users_by_upper_bound(users: List[UserStats], default_rate: f
 
 def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_name: str,
                                       tests: Dict[str, List[TestResult]],
-                                      k: int, default_rate: float):
+                                      k: int, default_rates: List[float]):
     test_random_sample = flatten_tests(user_group, tests)
     users_with_ci_results = calcuate_ci_for_user_group(user_group, test_random_sample, k)
-    defaulted_users = count_defaulted_users_by_upper_bound(users_with_ci_results, default_rate)
     print(f"{user_group_name} users (n={len(user_group)}")
-    print(f"""defaulted {user_group_name} with default rate of {default_rate}:
-        {defaulted_users}""")
-    print(f"{user_group_name} default rate: {defaulted_users / len(user_group)}")
+    for def_rate in default_rates:
+        defaulted_users = count_defaulted_users_by_upper_bound(users_with_ci_results, def_rate)
+        print(f"""defaulted {user_group_name} with default ratio of: {def_rate}:
+            {defaulted_users}""")
+        print(f"{user_group_name} default rate: {defaulted_users / len(user_group)}")
+        print()
     columns = [USER_NAME_HEBREW_KEY,
                USER_SPEED_PROGRAM_KEY_HEBREW,
                ISP_KEY_HEBREW,
@@ -294,11 +296,11 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_na
 
     print(pd.DataFrame()
           .from_records([u.to_dict() for u in users_with_ci_results])
-          .sort_values(USER_NAME_HEBREW_KEY)
+          .sort_values(UPPER_BOUND_KEY_HEBREW)
           .to_csv(sep="\t", columns=columns))
 
 
-def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
+def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float]):
     all_user_tests = get_user_tests_in_time_interval()
     all_users = []
     for user in all_user_tests:
@@ -314,22 +316,22 @@ def calc_confidence_mean_for_random_sample(k: int, default_rate: float):
                    if u.isp == 'Bezeq International-Ltd'
                    and u.infra == 'BEZEQ']
 
-    calculate_ci_stats_for_user_group(bezeq_users, "bezeq", all_user_tests, k, default_rate)
+    calculate_ci_stats_for_user_group(bezeq_users, "bezeq", all_user_tests, k, default_rates)
 
     hot_users = [u for u in all_users
                  if u.isp == 'Hot-Net internet services Ltd.'
                  and u.infra == 'HOT']
 
-    calculate_ci_stats_for_user_group(hot_users, "hot", all_user_tests, k, default_rate)
+    calculate_ci_stats_for_user_group(hot_users, "hot", all_user_tests, k, default_rates)
 
     partner_users = [u for u in all_users
                      if u.isp == 'Partner Communications Ltd.'
                      and u.infra == 'PARTNER']
 
-    calculate_ci_stats_for_user_group(partner_users, "partner", all_user_tests, k, default_rate)
+    calculate_ci_stats_for_user_group(partner_users, "partner", all_user_tests, k, default_rates)
 
-    calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rate)
+    calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rates)
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=300, default_rate=.5)
+    calc_confidence_mean_for_random_sample(k=300, default_rates=[.75, .5, .33, .25])
