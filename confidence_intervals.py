@@ -1,4 +1,3 @@
-import random
 from collections import defaultdict
 from enum import Enum
 from itertools import chain
@@ -169,6 +168,7 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
                    count(*) num_test
             from valid_tests
             where connection = 'LAN'
+            and speed not in (15, 30, 40)
             group by user_name
         )
         
@@ -184,8 +184,10 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
         join user_stats on user_stats.user_name = valid_tests.user_name
         where to_israel_dst_aware(timestamp) between first_test and first_test_plus_30_days
         and connection = 'LAN'
+        --and is_evening(timestamp)
+        -- and file_name = 'israel_cache'
         and num_test >= 700
-        ;
+        ;   
         """
     )
 
@@ -292,7 +294,8 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_na
                INFRASTRUCTURE_KEY_HEBREW,
                SAMPLE_AVERAGE_SPEED_KEY_HEBREW,
                LOWER_BOUND_KEY_HEBREW,
-               UPPER_BOUND_KEY_HEBREW]
+               UPPER_BOUND_KEY_HEBREW,
+               CONFIDENCE_LEVEL_KEY_HEBREW]
 
     print(pd.DataFrame()
           .from_records([u.to_dict() for u in users_with_ci_results])
@@ -314,24 +317,24 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float]):
 
     bezeq_users = [u for u in all_users
                    if u.isp == 'Bezeq International-Ltd'
-                   and u.infra == 'BEZEQ']
+                   or u.infra == 'BEZEQ']
 
     calculate_ci_stats_for_user_group(bezeq_users, "bezeq", all_user_tests, k, default_rates)
 
     hot_users = [u for u in all_users
                  if u.isp == 'Hot-Net internet services Ltd.'
-                 and u.infra == 'HOT']
+                 or u.infra == 'HOT']
 
     calculate_ci_stats_for_user_group(hot_users, "hot", all_user_tests, k, default_rates)
 
     partner_users = [u for u in all_users
                      if u.isp == 'Partner Communications Ltd.'
-                     and u.infra == 'PARTNER']
+                     or u.infra == 'PARTNER']
 
     calculate_ci_stats_for_user_group(partner_users, "partner", all_user_tests, k, default_rates)
 
-    calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rates)
+    # calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rates)
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=300, default_rates=[.75, .5, .33, .25])
+    calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3])
