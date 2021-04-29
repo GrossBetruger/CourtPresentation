@@ -129,17 +129,6 @@ def plot_histogram(x_values: List[float],
     return title
 
 
-def plot_website_ratios_histogram(ratios: List[float], label: str):
-    # plt = plot_histogram(x_values=ratios,
-    #                      title='השוואת אתרי בדיקת מהירות',
-    #                      x_label='אתר בדיקת מהירות',
-    #                      y_label='מספר בדיקות',
-    #                      bins=40,
-    #                      _range=(0, 2))
-    plot.hist(ratios, 40, range=(0, 2), label=label)
-
-
-
 def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float], speed: int):
     title = f'היסטוגרמה מהירות הורדה: ' +  vendor_to_hebrew_name(vendor_users)
     title += ' תכנית ' + str(speed) + ' מגה-ביט'
@@ -206,7 +195,6 @@ def speed_test_website_main(websites: List[str]):
         if i == row_size:
             j += 1
             i = 0
-        print(j, i)
 
         website = websites.pop()
         print(f"getting data for: '{website}'")
@@ -276,7 +264,6 @@ if __name__ == "__main__":
     speed_test_website_main(
         websites=["netflix", "ookla", "bezeq", "google", "hot"]
     )
-    quit()
 
     #  Random Normal Distribution (example):
     nums = numpy.random.normal(1, 0.3, 100000)
