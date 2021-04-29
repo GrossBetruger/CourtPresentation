@@ -129,14 +129,15 @@ def plot_histogram(x_values: List[float],
     return title
 
 
-def plot_website_ratios_histogram(ratios: List[float], title: str):
-    plt = plot_histogram(x_values=ratios,
-                         title=title,
-                         x_label='אתר בדיקת מהירות',
-                         y_label='מספר בדיקות',
-                         bins=40,
-                         _range=(0, 2))
-    return plt
+def plot_website_ratios_histogram(ratios: List[float], label: str):
+    # plt = plot_histogram(x_values=ratios,
+    #                      title='השוואת אתרי בדיקת מהירות',
+    #                      x_label='אתר בדיקת מהירות',
+    #                      y_label='מספר בדיקות',
+    #                      bins=40,
+    #                      _range=(0, 2))
+    plot.hist(ratios, 40, range=(0, 2), label=label)
+
 
 
 def plot_ground_truth_speeds(vendor_users: VendorUsers, ratios: List[float], speed: int):
@@ -193,22 +194,43 @@ def set_graphical_context():
     sns.set_style("darkgrid")
 
 
-def speed_test_website_main():
-    for website in [
-        "netflix", "ookla", "bezeq", "google", "hot"
-    ]:
+def speed_test_website_main(websites: List[str]):
+    number_of_websites = len(websites) + 1 # +1 for normal distribution
+    number_of_rows = 2
+    row_size = (number_of_websites // 2) + number_of_websites % 2
+    fig, axs = plot.subplots(number_of_rows, row_size, sharey=True, tight_layout=True)
+
+    row_size = 3
+    i = j = 0
+    while websites:
+        if i == row_size:
+            j += 1
+            i = 0
+        print(j, i)
+
+        website = websites.pop()
         print(f"getting data for: '{website}'")
         ratios = get_speed_test_ratios(website)
-        title = f'התפלגות תוצאות בדיקות מהירות {WEBSITE_NAME_TRANSLATE[website]} - היסטוגרמה'
-        plot_website_ratios_histogram(ratios, normalize_hebrew(title))
-        # prefix = "classic_resources_"
+        axs[j, i].hist(ratios, bins=20, range=(0, 2))
+        axs[j, i].set_title(normalize_hebrew(WEBSITE_NAME_TRANSLATE[website]))
+        i += 1
 
-        snapshots_path = Path("question_snapshots") / Path('website_comparison_histograms')
-        if not os.path.exists(snapshots_path):
-            os.makedirs(snapshots_path)
+    # add normal distribution data: μ, σ = 1.0, 0.33
+    axs[1, 2].hist([numpy.random.normal(1.0, 0.33) for x in range(400000)], bins=20, range=(0, 2))
+    axs[1, 2].set_title(normalize_hebrew('התפלגות נורמלית אקראית'))
 
-        plot.savefig(snapshots_path / Path(title + ".png"))
-        plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
+    x_label = normalize_hebrew('יחס בדיקת אתר למהירות בפועל')
+    x_label += ' ' * 130
+    y_label = normalize_hebrew('מספר בדיקות')
+    plot.xlabel(x_label)
+    plot.ylabel(y_label)
+    snapshots_path = Path("question_snapshots") / Path('website_comparison_histograms')
+    if not os.path.exists(snapshots_path):
+        os.makedirs(snapshots_path)
+
+    plot.legend(loc='best')
+    plot.savefig(snapshots_path / Path('השוואת אתרי בדיקה' + ".png"))
+    plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
 
 
 def ground_truth_main():
@@ -251,7 +273,10 @@ if __name__ == "__main__":
     set_graphical_context()  # Make Matplotlib not suck at aesthetics
 
     # Website comparison histogram logic
-    # speed_test_website_main()
+    speed_test_website_main(
+        websites=["netflix", "ookla", "bezeq", "google", "hot"]
+    )
+    quit()
 
     #  Random Normal Distribution (example):
     nums = numpy.random.normal(1, 0.3, 100000)
