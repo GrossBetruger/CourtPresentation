@@ -1,3 +1,4 @@
+import math
 import os
 import numpy
 import pandas as pd
@@ -221,6 +222,13 @@ def speed_test_website_main(websites: List[str]):
     plot.show()  # `.show` has to be after `.savefig` or else all hell breaks loose
 
 
+def create_snapshot_path(directory: str):
+    snapshots_path = Path("question_snapshots") / Path(directory)
+    if not os.path.exists(snapshots_path):
+        os.makedirs(snapshots_path)
+
+    return snapshots_path
+
 def ground_truth_main():
     violin_data = defaultdict(list)
     internet_speeds = [40, 100, 200]
@@ -257,8 +265,82 @@ def ground_truth_main():
         plot.show()
 
 
+def speed_test_website_scatter():
+    engine = get_engine()
+
+    all_resources_query = """
+          select website_to_hebrew(website) "אתר בדיקה",
+          avg(ground_truth_rate / speed_test_rate) "יחס מהירות בפועל למהירות בדיקה"
+          from valid_tests
+          where (ground_truth_rate / speed_test_rate) between 0.01 and 100
+          and  true_or_null(is_classic_test)
+          and  ground_truth_rate > 0 and speed_test_rate > 0
+          and not website = 'atnt'
+          group by website_to_hebrew(website)
+          order by  "יחס מהירות בפועל למהירות בדיקה"
+          ;
+      """
+
+    public_servers_query = """
+          select website_to_hebrew(website) "אתר בדיקה",
+          avg(ground_truth_rate / speed_test_rate) "יחס מהירות בפועל למהירות בדיקה"
+          from valid_tests
+          where (ground_truth_rate / speed_test_rate) between 0.01 and 100
+          and  true_or_null(is_classic_test)
+          and  ground_truth_rate > 0 and speed_test_rate > 0
+          and is_classic_resource(file_name)
+          and not website = 'atnt'
+          group by website
+          order by  "יחס מהירות בפועל למהירות בדיקה"
+          ;
+      """
+
+    israel_cache_query = """
+    select website_to_hebrew(website) "אתר בדיקה",      
+          avg(ground_truth_rate / speed_test_rate) "יחס מהירות בפועל למהירות בדיקה"
+          from valid_tests
+          where (ground_truth_rate / speed_test_rate) between 0.01 and 100
+          and  true_or_null(is_classic_test)
+          and  ground_truth_rate > 0 and speed_test_rate > 0
+          and file_name = 'israel_cache'
+          and not website = 'atnt'
+          group by website
+          order by  "יחס מהירות בפועל למהירות בדיקה"
+      ;
+      """
+
+    cur = engine.cursor()
+    lables = "כל המקורות", "קבצים ציבוריים", "שרת מטמון ישראל"
+    for label, query in zip(lables, [all_resources_query, public_servers_query, israel_cache_query]):
+        print(f"handeling: {label}")
+        cur.execute(query)
+        all_resources = list(cur.fetchall())
+        plot.scatter(x=[normalize_hebrew(x[0]) for x in all_resources],
+                     y=[x[1] for x in all_resources],
+                     label=normalize_hebrew(label))
+
+    first_on_x, last_on_x = normalize_hebrew('הוט'), normalize_hebrew('גוגל')
+    plot.hlines(y=1, xmin=first_on_x, xmax=last_on_x, colors='aqua', linestyles='dotted', lw=2, label=normalize_hebrew('חיזוי מדויק'))
+
+    plot.legend(loc="best")
+    plot.ylabel(normalize_hebrew('יחס בדיקת אתר למהירות בפועל'))
+    snapshots_path = Path("question_snapshots") / Path('ground_truth_violin_plots')
+    if not os.path.exists(snapshots_path):
+        os.makedirs(snapshots_path)
+
+    snapshots_path = create_snapshot_path("website_comparison_scatter")
+
+    fig_path = snapshots_path / Path("השוואת ממוצעי אתרי בדיקה" + ".png")
+    plot.savefig(fig_path)
+    print(f"saving {fig_path}")
+    plot.show()
+
+
 if __name__ == "__main__":
     set_graphical_context()  # Make Matplotlib not suck at aesthetics
+
+    # Website comparison scatter logic
+    speed_test_website_scatter()
 
     # Website comparison histogram logic
     speed_test_website_main(
@@ -273,7 +355,6 @@ if __name__ == "__main__":
     plot.savefig(title + ".png")
     print(f'saving {title + ".png"}')
     plot.show()
-
 
     # Ground truth rate histogram and violin plot logic
     ground_truth_main()
