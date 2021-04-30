@@ -7,7 +7,7 @@ from selenium.webdriver.common.keys import Keys
 
 BASE_URL = "http://127.0.0.1:7777"
 
-DASHBOARD_NUM = 34
+DASHBOARD_NUM = 1
 
 USER_VAR_NAME = "user_name"
 
@@ -15,13 +15,17 @@ USERS = ["omry","sivan","lior","miras","idan","dov","sery","erez","dalia","hila_
 
 
 def read_password():
-    with open(os.path.expanduser("~/.metapass")) as f:
-        return f.read().strip()
+    return "notasecret1"
+
+    # with open(os.path.expanduser("~/.metapass")) as f:
+    #     return f.read().strip()
 
 
 def read_user():
-    with open(os.path.expanduser("~/.metausr")) as f:
-        return f.read().strip()
+    return "israel_testers@gmail.com"
+
+    # with open(os.path.expanduser("~/.metausr")) as f:
+    #     return f.read().strip()
 
 
 def authenticate_metabase(browser):
