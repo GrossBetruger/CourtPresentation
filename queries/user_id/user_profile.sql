@@ -11,18 +11,22 @@ number_of_wifi_tests as (
 )
 
 select
-  "שם_מלא" as "שם משתמש",
+--   user_name "שם משתמש",
+  concat("שם_מלא", ' (', user_name, ')') "שם ומשתמש",
   isp "ספקית",
   infrastructure "תשתית",
-  speed as "מהירות תכנית גלישה",
-  min(to_israel_dst_aware(timestamp)) as "התחלת בדיקות",
-  max(to_israel_dst_aware(timestamp)) as "סיום בדיקות",
-  (select * from number_of_lan_tests) as "מספר בדיקת חיבור קווי (LAN)",
-  (select * from number_of_wifi_tests) as "מספר בדיקות אלחוטיות (WiFi)"
+  speed as "תכנית",
+    concat(
+                replace(split_part(min(to_israel_dst_aware(timestamp))::text, ' ', 1), '-', '/'),
+                ' - ',
+                replace(split_part(max(to_israel_dst_aware(timestamp))::text, ' ', 1), '-', '/')
+            ) as "תקופה",
+  (select * from number_of_lan_tests) as "מס בדיקות קווי",
+  (select * from number_of_wifi_tests) as "מס בדיקות אלחוטי"
 
 from valid_tests
-join testers on valid_tests.user_name = testers."יוזר"
+join testers on testers.יוזר = valid_tests.user_name
 where user_name = {{user_name}}
-group by "שם משתמש", isp, infrastructure, speed
+group by user_name, isp, infrastructure, speed, שם_מלא
 ;
 
