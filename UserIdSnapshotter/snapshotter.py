@@ -1,17 +1,31 @@
+import utils
+
 from time import sleep
-
 from selenium import webdriver
-import os
 
-from selenium.webdriver.common.keys import Keys
 
 BASE_URL = "http://127.0.0.1:7777"
 
 DASHBOARD_NUM = 1
 
-USER_VAR_NAME = "user_name"
+USER_VAR_NAME = "id"
 
-USERS = ["omry","sivan","lior","miras","idan","dov","sery","erez","dalia","hila_s","dor_bd","inbaru","omer","evyatar","lian","noam_b","tali","ameer","stephan","daniel","Sery","artium","raz","David","michael","Haza","daniel_t","admin","zion","paz","ilil","barak_200","rachel","hod","rom","eyal","david","assif","dana","admin_200","eli_d","ella","viki","ofir","segal","roni","nimrod","gil","zvi","tali_l","s_golan","aviram","etl","itamar","hafi","or_shaked","yoel","yarden","orit","raz_s","nimrod_h","dor","fadrok","yakov","ben_b","rina","hamaoz","tankus","getzel","tamir","barak","aviad","asaf","dor_p","rotem","shay","carmit","gadi","dan_florentin","wiezel","ArielG","etl_home","meital","oren","golan","ziv","dani","ariel","tal_a","anna","zhalaby","ofer","khalifa","yosi","ron","escape_room","vitaly","sharon","dor_b","ishay","ben","gilt","zigi","alon","valenci","idang","avi","yochi","gali","shaked","elkana","yuval","carmit_hot","ariel_100","alon_s","gilad","yosef","hila","moshe","may","dudu","sheila","shay_s"]
+
+def read_users():
+    engine = utils.get_engine()
+    cur = engine.cursor()
+    cur.execute('''
+        select distinct
+                        "יוזר"
+        from testers;
+    ''')
+    names = []
+    for row in cur.fetchall():
+        names.append(row[0])
+    return names
+
+
+USERS = read_users()
 
 
 def read_password():
