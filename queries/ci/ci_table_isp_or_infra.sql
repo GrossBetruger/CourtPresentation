@@ -41,4 +41,6 @@ select 'פרטנר' "ספקית או תשתית",
 (select * from oversold_half_partner_evening) "גולשים בממוצע בפחות מחצי חבילה בשעות הערב",
 (select * from oversold_third_partner) "גולשים בממוצע בפחות משליש חבילה",
 (select * from oversold_third_partner_evening) "גולשים בממוצע בפחות משליש חבילה בשעות הערב"
+
+order by "ספקית או תשתית"
 ;
