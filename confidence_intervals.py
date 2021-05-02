@@ -3,6 +3,7 @@ from enum import Enum
 from itertools import chain
 from random import choice
 from typing import Optional, List, Dict, Tuple, Any
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ import scipy
 import scipy.stats
 from psycopg2.extensions import cursor
 
+from googlesheet_updater import upload_csv
 from utils import get_engine
 
 USER_SPEED_PROGRAM_KEY_HEBREW = "תכנית"
@@ -31,10 +33,43 @@ USER_NAME_HEBREW_KEY = "שם משתמש"
 DECIMAL_PLACES = 3
 
 
-class Vendor(Enum):
-    Bezeq = {"view": "bezeq_users", "name": "בזק"}
-    HOT = {"view": "hot_users", "name": "הוט"}
-    Partner = {"view": "partner_users", "name": "פרטנר"}
+@dataclass
+class Vendor:
+    isp: str
+    infra: str
+    sheet_title: str
+    sheet_title_evening: str
+    sheet_title_pure: str
+    sheet_title_pure_evening: str
+
+
+BEZEQ = Vendor(
+                'Bezeq International-Ltd',
+                'BEZEQ',
+                sheet_title='משתמשי בזק (ספקית או תשתית)',
+                sheet_title_evening='משתמשי בזק (סםקית או תשתית) שעות הערב',
+                sheet_title_pure='משתמשי בזק (ספקית + תשתית)',
+                sheet_title_pure_evening='משתמשי בזק (סםקית + תשתית) שעות הערב'
+            )
+
+
+HOT = Vendor(
+    'Hot-Net internet services Ltd.',
+    'HOT',
+    sheet_title='משתמשי הוט (ספקית או תשתית)',
+    sheet_title_evening='משתמשי הוט (ספקית או תשתית) שעות הערב',
+    sheet_title_pure='משתמשי הוט (ספקית + תשתית)',
+    sheet_title_pure_evening='משתמשי הוט (סםקית + תשתית) שעות הערב'
+)
+
+PARTNER = Vendor(
+    'Partner Communications Ltd.',
+    'PARTNER',
+    sheet_title='משתמשי פרטנר (ספקית או תשתית)',
+    sheet_title_evening='משתמשי פרטנר (ספקית או תשתית) שעות הערב',
+    sheet_title_pure='משתמשי פרטנר (ספקית + תשתית)',
+    sheet_title_pure_evening='משתמשי פרטנר (סםקית + תשתית) שעות הערב'
+)
 
 
 class ConfidenceIntervalResult:
@@ -119,6 +154,16 @@ class TestResult:
         self.isp = isp
 
 
+def get_sheet_title(vendor: Vendor, is_pure: bool, is_evening: bool):
+    if is_pure is True and is_evening is True:
+        return vendor.sheet_title_pure_evening
+    elif is_pure is True:
+        return vendor.sheet_title_pure
+    elif is_evening is True:
+        return vendor.sheet_title_evening
+    return vendor.sheet_title
+
+
 def calc_confidence_interval(data, confidence=0.95):
     m = np.mean(data)
     lower, upper = scipy.stats.t.interval(confidence, len(data) - 1, loc=m, scale=scipy.stats.sem(data))
@@ -183,6 +228,10 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
         )
 
     return results
+
+
+def get_user_tests_in_time_interval_evening() -> Dict[str, List[TestResult]]:
+    raise NotImplementedError
 
 
 def calc_intervals_speed_test_website_comparisons():
@@ -252,17 +301,20 @@ def count_defaulted_users_by_upper_bound(users: List[UserStats], default_rate: f
     return count
 
 
-def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_name: str,
+def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendor,
                                       tests: Dict[str, List[TestResult]],
-                                      k: int, default_rates: List[float]):
+                                      k: int, default_rates: List[float],
+                                      pure: bool,
+                                      evening: bool):
+
     test_random_sample = flatten_tests(user_group, tests)
     users_with_ci_results = calcuate_ci_for_user_group(user_group, test_random_sample, k)
-    print(f"{user_group_name} users (n={len(user_group)}")
+    print(f"{vendor.infra.capitalize()} users (n={len(user_group)}")
     for def_rate in default_rates:
         defaulted_users = count_defaulted_users_by_upper_bound(users_with_ci_results, def_rate)
-        print(f"""defaulted {user_group_name} with default ratio of: {def_rate}:
+        print(f"""defaulted {vendor.infra.capitalize()} with default ratio of: {def_rate}:
             {defaulted_users}""")
-        print(f"{user_group_name} default rate: {defaulted_users / len(user_group)}")
+        print(f"{vendor.infra.capitalize()} default rate: {defaulted_users / len(user_group)}")
         print()
     columns = [USER_NAME_HEBREW_KEY,
                USER_SPEED_PROGRAM_KEY_HEBREW,
@@ -273,14 +325,31 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_na
                UPPER_BOUND_KEY_HEBREW,
                CONFIDENCE_LEVEL_KEY_HEBREW]
 
-    print(pd.DataFrame()
-          .from_records([u.to_dict() for u in users_with_ci_results])
-          .sort_values(UPPER_BOUND_KEY_HEBREW)
-          .to_csv(sep="\t", columns=columns, index=False))
+    csv = pd.DataFrame()\
+        .from_records([u.to_dict() for u in users_with_ci_results])\
+        .sort_values(UPPER_BOUND_KEY_HEBREW)\
+        .to_csv(sep=",", columns=columns, index=False)
+
+    spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
+    # if spreadsheet_title is not None:
+    upload_csv(spreadsheet_title, csv.encode("utf-8"))
 
 
-def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float]):
+def extract_user_group(vendor: Vendor, users: List[UserStats], pure: bool = False):
+    if pure is True:
+        return [u for u in users
+                if u.isp == vendor.isp
+                and u.infra == vendor.infra]
+
+    return [u for u in users
+                if u.isp == vendor.isp
+                or u.infra == vendor.infra]
+
+
+def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], pure_vendor: bool, is_evening: bool):
     all_user_tests = get_user_tests_in_time_interval()
+    if is_evening is True:
+        all_user_tests = get_user_tests_in_time_interval_evening()
     all_users = []
     for user in all_user_tests:
         user_stats = UserStats(
@@ -291,26 +360,34 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float]):
         )
         all_users.append(user_stats)
 
-    bezeq_users = [u for u in all_users
-                   if u.isp == 'Bezeq International-Ltd'
-                   and u.infra == 'BEZEQ']
+    # bezeq_users = [u for u in all_users
+    #                if u.isp == 'Bezeq International-Ltd'
+    #                and u.infra == 'BEZEQ']
+    bezeq_users = extract_user_group(BEZEQ, all_users, pure=pure_vendor)
 
-    calculate_ci_stats_for_user_group(bezeq_users, "bezeq", all_user_tests, k, default_rates)
+    # group_name = "bezeq"
+    # if pure_vendor is True:
+    #     group_name += "_pure"
+    calculate_ci_stats_for_user_group(bezeq_users, BEZEQ, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
-    hot_users = [u for u in all_users
-                 if u.isp == 'Hot-Net internet services Ltd.'
-                 and u.infra == 'HOT']
+    # hot_users = [u for u in all_users
+    #              if u.isp == 'Hot-Net internet services Ltd.'
+    #              and u.infra == 'HOT']
+    hot_users = extract_user_group(HOT, all_users, pure=pure_vendor)
+    # group_name = "hot"
+    # if pure_vendor is True:
+    #     group_name += "_pure"
+    calculate_ci_stats_for_user_group(hot_users, HOT, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
-    calculate_ci_stats_for_user_group(hot_users, "hot", all_user_tests, k, default_rates)
-
-    partner_users = [u for u in all_users
-                     if u.isp == 'Partner Communications Ltd.'
-                     and u.infra == 'PARTNER']
-
-    calculate_ci_stats_for_user_group(partner_users, "partner", all_user_tests, k, default_rates)
+    # partner_users = [u for u in all_users
+    #                  if u.isp == 'Partner Communications Ltd.'
+    #                  and u.infra == 'PARTNER']
+    partner_users = extract_user_group(PARTNER, all_users, pure=pure_vendor)
+    calculate_ci_stats_for_user_group(partner_users, PARTNER, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
     # calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rates)
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3])
+    calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=False, is_evening=False)
+    calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=True, is_evening=False)
