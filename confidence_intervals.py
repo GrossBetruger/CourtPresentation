@@ -161,32 +161,8 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
     cur: cursor = engine.cursor()
     cur.execute(
         """
-        with user_stats as (
-            select user_name,
-                   min(to_israel_dst_aware(timestamp)) first_test,
-                   min(to_israel_dst_aware(timestamp)) + interval '30' day first_test_plus_30_days,
-                   count(*) num_test
-            from valid_tests
-            where connection = 'LAN'
-            and speed not in (15, 30, 40)
-            group by user_name
-        )
-        
-        select valid_tests.user_name,
-               ground_truth_rate,
-               speed,
-               infrastructure,
-               isp,
-               valid_tests.connection,
-               num_test,
-               timestamp
-        from valid_tests
-        join user_stats on user_stats.user_name = valid_tests.user_name
-        where to_israel_dst_aware(timestamp) between first_test and first_test_plus_30_days
-        and connection = 'LAN'
-        --and is_evening(timestamp)
-        -- and file_name = 'israel_cache'
-        and num_test >= 700
+        select user_name, result, speed, infra, isp
+        from test_random_sample
         ;   
         """
     )
@@ -194,7 +170,7 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
     results = defaultdict(list)
 
     for r in cur.fetchall():
-        user_name, test_result, user_speed, infra, isp, _, _, _ = r
+        user_name, test_result, user_speed, infra, isp = r
 
         results[user_name].append(
             TestResult(
@@ -300,7 +276,7 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], user_group_na
     print(pd.DataFrame()
           .from_records([u.to_dict() for u in users_with_ci_results])
           .sort_values(UPPER_BOUND_KEY_HEBREW)
-          .to_csv(sep="\t", columns=columns))
+          .to_csv(sep="\t", columns=columns, index=False))
 
 
 def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float]):
@@ -317,19 +293,19 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float]):
 
     bezeq_users = [u for u in all_users
                    if u.isp == 'Bezeq International-Ltd'
-                   or u.infra == 'BEZEQ']
+                   and u.infra == 'BEZEQ']
 
     calculate_ci_stats_for_user_group(bezeq_users, "bezeq", all_user_tests, k, default_rates)
 
     hot_users = [u for u in all_users
                  if u.isp == 'Hot-Net internet services Ltd.'
-                 or u.infra == 'HOT']
+                 and u.infra == 'HOT']
 
     calculate_ci_stats_for_user_group(hot_users, "hot", all_user_tests, k, default_rates)
 
     partner_users = [u for u in all_users
                      if u.isp == 'Partner Communications Ltd.'
-                     or u.infra == 'PARTNER']
+                     and u.infra == 'PARTNER']
 
     calculate_ci_stats_for_user_group(partner_users, "partner", all_user_tests, k, default_rates)
 
