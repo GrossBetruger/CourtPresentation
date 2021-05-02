@@ -1,18 +1,17 @@
-from collections import defaultdict
-from enum import Enum
-from itertools import chain
-from random import choice
-from typing import Optional, List, Dict, Tuple, Any
-from dataclasses import dataclass
-
 import numpy as np
 import pandas as pd
 import scipy
 import scipy.stats
-from psycopg2.extensions import cursor
 
-from googlesheet_updater import upload_csv
+from collections import defaultdict
+from dataclasses import dataclass
+from itertools import chain
+from random import choice
+from typing import Optional, List, Dict, Tuple, Any
+from psycopg2.extensions import cursor
 from utils import get_engine
+from googlesheet_updater import upload_csv
+
 
 USER_SPEED_PROGRAM_KEY_HEBREW = "תכנית"
 
@@ -95,11 +94,9 @@ class UserStats:
     def __init__(
             self,
             user_name: str,
-            # mean: float,
             speed: int,
             infra: str,
             isp: str,
-            # ci: ConfidenceIntervalResult,
     ):
         self.user_name = user_name
         self.mean: Optional[float] = None
@@ -331,7 +328,6 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
         .to_csv(sep=",", columns=columns, index=False)
 
     spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
-    # if spreadsheet_title is not None:
     upload_csv(spreadsheet_title, csv.encode("utf-8"))
 
 
@@ -360,32 +356,14 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], p
         )
         all_users.append(user_stats)
 
-    # bezeq_users = [u for u in all_users
-    #                if u.isp == 'Bezeq International-Ltd'
-    #                and u.infra == 'BEZEQ']
     bezeq_users = extract_user_group(BEZEQ, all_users, pure=pure_vendor)
-
-    # group_name = "bezeq"
-    # if pure_vendor is True:
-    #     group_name += "_pure"
     calculate_ci_stats_for_user_group(bezeq_users, BEZEQ, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
-    # hot_users = [u for u in all_users
-    #              if u.isp == 'Hot-Net internet services Ltd.'
-    #              and u.infra == 'HOT']
     hot_users = extract_user_group(HOT, all_users, pure=pure_vendor)
-    # group_name = "hot"
-    # if pure_vendor is True:
-    #     group_name += "_pure"
     calculate_ci_stats_for_user_group(hot_users, HOT, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
-    # partner_users = [u for u in all_users
-    #                  if u.isp == 'Partner Communications Ltd.'
-    #                  and u.infra == 'PARTNER']
     partner_users = extract_user_group(PARTNER, all_users, pure=pure_vendor)
     calculate_ci_stats_for_user_group(partner_users, PARTNER, all_user_tests, k, default_rates, pure_vendor, is_evening)
-
-    # calculate_ci_stats_for_user_group(all_users, "all vendors", all_user_tests, k, default_rates)
 
 
 if __name__ == "__main__":
