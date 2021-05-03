@@ -46,9 +46,9 @@ BEZEQ = Vendor(
                 'Bezeq International-Ltd',
                 'BEZEQ',
                 sheet_title='משתמשי בזק (ספקית או תשתית)',
-                sheet_title_evening='משתמשי בזק (סםקית או תשתית) שעות הערב',
+                sheet_title_evening='משתמשי בזק (ספקית או תשתית) שעות הערב',
                 sheet_title_pure='משתמשי בזק (ספקית + תשתית)',
-                sheet_title_pure_evening='משתמשי בזק (סםקית + תשתית) שעות הערב'
+                sheet_title_pure_evening='משתמשי בזק (ספקית + תשתית) שעות הערב'
             )
 
 
@@ -58,7 +58,7 @@ HOT = Vendor(
     sheet_title='משתמשי הוט (ספקית או תשתית)',
     sheet_title_evening='משתמשי הוט (ספקית או תשתית) שעות הערב',
     sheet_title_pure='משתמשי הוט (ספקית + תשתית)',
-    sheet_title_pure_evening='משתמשי הוט (סםקית + תשתית) שעות הערב'
+    sheet_title_pure_evening='משתמשי הוט (ספקית + תשתית) שעות הערב'
 )
 
 PARTNER = Vendor(
@@ -67,7 +67,7 @@ PARTNER = Vendor(
     sheet_title='משתמשי פרטנר (ספקית או תשתית)',
     sheet_title_evening='משתמשי פרטנר (ספקית או תשתית) שעות הערב',
     sheet_title_pure='משתמשי פרטנר (ספקית + תשתית)',
-    sheet_title_pure_evening='משתמשי פרטנר (סםקית + תשתית) שעות הערב'
+    sheet_title_pure_evening='משתמשי פרטנר (ספקית + תשתית) שעות הערב'
 )
 
 
@@ -198,20 +198,10 @@ def choose_k_random_results(results: list, k: int) -> list:
     return [choice(results) for _ in range(k)]
 
 
-def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
-    engine = get_engine()
-    cur: cursor = engine.cursor()
-    cur.execute(
-        """
-        select user_name, result, speed, infra, isp
-        from test_random_sample
-        ;   
-        """
-    )
-
+def fetch_sample_results(c: cursor) -> Dict[str, List[TestResult]]:
     results = defaultdict(list)
 
-    for r in cur.fetchall():
+    for r in c.fetchall():
         user_name, test_result, user_speed, infra, isp = r
 
         results[user_name].append(
@@ -227,8 +217,46 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
     return results
 
 
+def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
+    engine = get_engine()
+    cur: cursor = engine.cursor()
+    cur.execute(
+        """
+        select user_name, result, speed, infra, isp
+        from test_random_sample
+        ;   
+        """
+    )
+    return fetch_sample_results(cur)
+    # results = defaultdict(list)
+    #
+    # for r in cur.fetchall():
+    #     user_name, test_result, user_speed, infra, isp = r
+    #
+    #     results[user_name].append(
+    #         TestResult(
+    #             user_name=user_name,
+    #             ground_truth_rate=test_result,
+    #             speed=user_speed,
+    #             infra=infra,
+    #             isp=isp
+    #         )
+    #     )
+    #
+    # return results
+
+
 def get_user_tests_in_time_interval_evening() -> Dict[str, List[TestResult]]:
-    raise NotImplementedError
+    engine = get_engine()
+    cur: cursor = engine.cursor()
+    cur.execute(
+        """
+        select user_name, result, speed, infra, isp
+        from test_random_sample_evening
+        ;   
+        """
+    )
+    return fetch_sample_results(cur)
 
 
 def calc_intervals_speed_test_website_comparisons():
@@ -306,12 +334,13 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
 
     test_random_sample = flatten_tests(user_group, tests)
     users_with_ci_results = calcuate_ci_for_user_group(user_group, test_random_sample, k)
-    print(f"{vendor.infra.capitalize()} users (n={len(user_group)}")
+    suffix = " (evening)" if evening is True else ""
+    print(f"{vendor.infra.capitalize()} users (n={len(user_group)})" + suffix)
     for def_rate in default_rates:
         defaulted_users = count_defaulted_users_by_upper_bound(users_with_ci_results, def_rate)
         print(f"""defaulted {vendor.infra.capitalize()} with default ratio of: {def_rate}:
-            {defaulted_users}""")
-        print(f"{vendor.infra.capitalize()} default rate: {defaulted_users / len(user_group)}")
+            {defaulted_users}""" + suffix)
+        print(f"{vendor.infra.capitalize()} default rate: {defaulted_users / len(user_group)}" + suffix)
         print()
     columns = [USER_NAME_HEBREW_KEY,
                USER_SPEED_PROGRAM_KEY_HEBREW,
@@ -367,5 +396,8 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], p
 
 
 if __name__ == "__main__":
-    calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=False, is_evening=False)
-    calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=True, is_evening=False)
+    for pv in [True, False]:
+        for iv in [True, False]:
+            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=pv, is_evening=iv)
+            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=pv, is_evening=iv)
+    print("ALL DONE")
