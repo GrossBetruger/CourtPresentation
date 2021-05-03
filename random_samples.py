@@ -37,7 +37,9 @@ class RandomSample:
             drop table if exists randomized_valid_tests;
             select setseed(0.314159265359);
             create table if not exists randomized_valid_tests as (
-                select random() as random_index, is_evening(timestamp) evening, * from valid_tests
+                select random() as random_index, is_evening(timestamp) evening, *
+                 from valid_tests
+                 order by random_index
             );
             create index on randomized_valid_tests(timestamp);
             create index on randomized_valid_tests(user_name);
@@ -75,7 +77,7 @@ class RandomSample:
                     and connection = 'LAN'
                     and num_test >= 700
                     and is_classic_resource(file_name)
-                    order by random_index limit 300;
+                    limit 300;
             end loop;
                 end;
             $$;
@@ -112,7 +114,7 @@ class RandomSample:
                 and num_test >= 700
                 and is_classic_resource(file_name)
                 and evening is True
-                order by random_index limit 300;
+                limit 300;
             end loop;
                 end;
             $$;
