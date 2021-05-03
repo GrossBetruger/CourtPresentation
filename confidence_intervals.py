@@ -12,7 +12,6 @@ from psycopg2.extensions import cursor
 from utils import get_engine
 from googlesheet_updater import upload_csv
 
-
 USER_SPEED_PROGRAM_KEY_HEBREW = "תכנית"
 
 ISP_KEY_HEBREW = "ספקית"
@@ -43,14 +42,13 @@ class Vendor:
 
 
 BEZEQ = Vendor(
-                'Bezeq International-Ltd',
-                'BEZEQ',
-                sheet_title='משתמשי בזק (ספקית או תשתית)',
-                sheet_title_evening='משתמשי בזק (ספקית או תשתית) שעות הערב',
-                sheet_title_pure='משתמשי בזק (ספקית + תשתית)',
-                sheet_title_pure_evening='משתמשי בזק (ספקית + תשתית) שעות הערב'
-            )
-
+    'Bezeq International-Ltd',
+    'BEZEQ',
+    sheet_title='משתמשי בזק (ספקית או תשתית)',
+    sheet_title_evening='משתמשי בזק (ספקית או תשתית) שעות הערב',
+    sheet_title_pure='משתמשי בזק (ספקית + תשתית)',
+    sheet_title_pure_evening='משתמשי בזק (ספקית + תשתית) שעות הערב'
+)
 
 HOT = Vendor(
     'Hot-Net internet services Ltd.',
@@ -228,22 +226,6 @@ def get_user_tests_in_time_interval() -> Dict[str, List[TestResult]]:
         """
     )
     return fetch_sample_results(cur)
-    # results = defaultdict(list)
-    #
-    # for r in cur.fetchall():
-    #     user_name, test_result, user_speed, infra, isp = r
-    #
-    #     results[user_name].append(
-    #         TestResult(
-    #             user_name=user_name,
-    #             ground_truth_rate=test_result,
-    #             speed=user_speed,
-    #             infra=infra,
-    #             isp=isp
-    #         )
-    #     )
-    #
-    # return results
 
 
 def get_user_tests_in_time_interval_evening() -> Dict[str, List[TestResult]]:
@@ -331,7 +313,6 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
                                       k: int, default_rates: List[float],
                                       pure: bool,
                                       evening: bool):
-
     test_random_sample = flatten_tests(user_group, tests)
     users_with_ci_results = calcuate_ci_for_user_group(user_group, test_random_sample, k)
     suffix = " (evening)" if evening is True else ""
@@ -351,9 +332,9 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
                UPPER_BOUND_KEY_HEBREW,
                CONFIDENCE_LEVEL_KEY_HEBREW]
 
-    csv = pd.DataFrame()\
-        .from_records([u.to_dict() for u in users_with_ci_results])\
-        .sort_values(UPPER_BOUND_KEY_HEBREW)\
+    csv = pd.DataFrame() \
+        .from_records([u.to_dict() for u in users_with_ci_results]) \
+        .sort_values(UPPER_BOUND_KEY_HEBREW) \
         .to_csv(sep=",", columns=columns, index=False)
 
     spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
@@ -367,8 +348,8 @@ def extract_user_group(vendor: Vendor, users: List[UserStats], pure: bool = Fals
                 and u.infra == vendor.infra]
 
     return [u for u in users
-                if u.isp == vendor.isp
-                or u.infra == vendor.infra]
+            if u.isp == vendor.isp
+            or u.infra == vendor.infra]
 
 
 def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], pure_vendor: bool, is_evening: bool):
@@ -398,6 +379,6 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], p
 if __name__ == "__main__":
     for pv in [True, False]:
         for iv in [True, False]:
-            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=pv, is_evening=iv)
-            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=pv, is_evening=iv)
+            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
+            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
     print("ALL DONE")
