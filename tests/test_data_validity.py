@@ -116,7 +116,7 @@ class TestDataValidity(unittest.TestCase):
 
         # random sample data persistency
         randomized_valid_test = self.get_rows("select ground_truth_rate, user_name, file_name, timestamp, random_index"
-                                              " from randomized_valid_tests order by random_index")
+                                              " from randomized_valid_tests")
 
         second = (6.437308051433778, 'ben_b', 'go', 1540301748578, 1.1055979456386922e-06)
         last_row = (63.250679088980895, 'etl', 'firefox', 1571828370256, 0.9999999137277591)
@@ -128,13 +128,22 @@ class TestDataValidity(unittest.TestCase):
         self.assertEqual(row_minus_pi, randomized_valid_test[-314159])
         self.assertEqual(row_minus_1000, randomized_valid_test[-1000])
 
-        sample = self.get_rows("select user_name, result, timestamp from test_random_sample order by timestamp")
-        first_row = ('admin', 18.813411540900443, 1529870019339)
-        last_row = ('dan_florentin', 36.70050094950409, 1587377434453)
-        row_minus_1000 = ('artium', 37.905948297764226, 1584833539085)
+        sample = self.get_rows("select user_name, result, timestamp, file_name"
+                               " from test_random_sample order by timestamp")
+        first_row = ('admin', 18.813411540900443, 1529870019339, 'my-sql')
+        last_row = ('dan_florentin', 36.70050094950409, 1587377434453, 'dlink')
+        row_minus_1000 = ('artium', 37.905948297764226, 1584833539085, 'dlink')
+
         self.assertEqual(first_row, sample[0])
         self.assertEqual(last_row, sample[-1])
         self.assertEqual(row_minus_1000, sample[-1000])
+
+        public_access_resources = ["file_name","amazon-workSpaces",
+                                   "windows-games","windows-games-studio",
+                                   "my-sql","dlink","vlc","go","firefox","quicktime"]
+
+        for _, _, _, filename in sample:
+            self.assertIn(filename, public_access_resources)
 
     def test_evening_random_sample(self):
         evening_timestamps = self.get_rows("select timestamp from test_random_sample_evening")
