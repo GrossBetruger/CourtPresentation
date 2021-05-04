@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import psycopg2
 from arabic_reshaper import arabic_reshaper
@@ -18,6 +19,16 @@ def read_password() -> str:
 def get_engine() -> psycopg2.extensions.connection:
     conn = psycopg2.connect(f"dbname='postgres' user='postgres' host='localhost' password='{read_password()}'")
     return conn
+
+
+def get_rows(read_only_query: str) -> List[tuple]:
+    conn = get_engine()
+    cur = conn.cursor()
+    cur.execute(read_only_query)
+    rows = []
+    for row in cur.fetchall():
+        rows.append(row)
+    return rows
 
 
 def normalize_hebrew(raw_text: str):

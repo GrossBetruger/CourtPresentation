@@ -15,8 +15,13 @@ from typing import Optional, List, Dict, Tuple, Any
 from psycopg2.extensions import cursor
 
 from confidence_intervals.init_ci_tables import CITablesInit
-from utils import get_engine
+from confidence_intervals.queries import CI_HIGHLEVEL_QUERY_ISP_OR_INFRA, CI_HIGHLEVEL_QUERY_ISP_AND_INFRA
+from utils import get_engine, get_rows
 from googlesheet_updater import upload_csv
+
+SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA = "ממצאי רווח סמך (ספקית + תשתית)"
+
+SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA = "ממצאי רווח סמך (ספקית או תשתית)"
 
 USER_SPEED_PROGRAM_KEY_HEBREW = "תכנית"
 
@@ -352,7 +357,7 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
         ci_table_name = "pure_" + ci_table_name
     print(f"copying to: '{ci_table_name}'")
     copy_csv_to_table(StringIO(csv_no_header), get_engine(), ci_table_name)
-    
+
     spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
     upload_csv(spreadsheet_title, csv.encode("utf-8"))
 
@@ -370,8 +375,6 @@ def extract_user_group(vendor: Vendor, users: List[UserStats], pure: bool = Fals
 
 def copy_csv_to_table(csv: StringIO, connection: psycopg2.extensions.connection, table_name: str):
     cur = connection.cursor()
-    # with open(path, 'r') as f:
-    #     next(f)  # skip header
     cur.copy_from(csv, table_name, sep=',')
     connection.commit()
 
@@ -400,6 +403,33 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], p
     calculate_ci_stats_for_user_group(partner_users, PARTNER, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
 
+def summary_isp_or_infra_header():
+    header = [("ספקית או תשתית",
+               "מספר משתמשים",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה בשעות הערב",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב")]
+    return header
+
+
+def summary_isp_and_infra_header() -> List[tuple]:
+    header = [("ספקית + תשתית",
+               "מספר משתמשים",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה בשעות הערב",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה",
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב")]
+    return header
+
+
+def create_summary_ci_tables():
+    isp_or_infra = pd.DataFrame.from_records(summary_isp_or_infra_header() + get_rows(CI_HIGHLEVEL_QUERY_ISP_OR_INFRA))
+    isp_and_infra = pd.DataFrame.from_records(summary_isp_and_infra_header() + get_rows(CI_HIGHLEVEL_QUERY_ISP_AND_INFRA))
+    upload_csv(SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA, isp_or_infra.to_csv(index=False, header=False).encode("utf-8"))
+    upload_csv(SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA, isp_and_infra.to_csv(index=False, header=False).encode("utf-8"))
+
+
 if __name__ == "__main__":
     # Init CI tables
     ci_table_initiator = CITablesInit()
@@ -408,4 +438,6 @@ if __name__ == "__main__":
     for pv in [True, False]:
         for iv in [True, False]:
             calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
+
+    create_summary_ci_tables()
     print("ALL DONE")
