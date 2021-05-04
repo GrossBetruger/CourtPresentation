@@ -15,7 +15,7 @@ def read_password() -> str:
         print(f"expected db password in: {PGPASS}")
 
 
-def get_engine():
+def get_engine() -> psycopg2.extensions.connection:
     conn = psycopg2.connect(f"dbname='postgres' user='postgres' host='localhost' password='{read_password()}'")
     return conn
 

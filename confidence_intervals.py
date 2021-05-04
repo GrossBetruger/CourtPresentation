@@ -1,5 +1,8 @@
+import os
+
 import numpy as np
 import pandas as pd
+import psycopg2
 import scipy
 import scipy.stats
 
@@ -9,6 +12,8 @@ from itertools import chain
 from random import choice
 from typing import Optional, List, Dict, Tuple, Any
 from psycopg2.extensions import cursor
+
+from confidence_intervals.init_ci_tables import CITablesInit
 from utils import get_engine
 from googlesheet_updater import upload_csv
 
@@ -277,12 +282,9 @@ def calcuate_ci_for_user_group(user_group: List[UserStats],
 
     result = list()
     for user in user_group:
-        user_tests = [test for test in user_group_tests if test.user_name == user.user_name]
-        random_test_sample = [result.ground_truth_rate for result in
-                              choose_k_random_results(user_tests, k=test_sample_size)]
-
-        mean, lower_bound, upper_bound, h = calc_confidence_interval(random_test_sample, confidence=confidence_level)
-        # h_values[user_stats.speed].append(h)
+        user_test_sample = [test.ground_truth_rate for test in user_group_tests if test.user_name == user.user_name]
+        assert len(user_test_sample) == test_sample_size
+        mean, lower_bound, upper_bound, h = calc_confidence_interval(user_test_sample, confidence=confidence_level)
 
         ci = ConfidenceIntervalResult(
             confidence=confidence_level,
@@ -337,6 +339,19 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
         .sort_values(UPPER_BOUND_KEY_HEBREW) \
         .to_csv(sep=",", columns=columns, index=False)
 
+    ci_table_name = vendor.infra.lower() + "_ci"
+    if evening is True:
+        ci_table_name += "_evening"
+    if pure is True:
+        ci_table_name = "pure_" + ci_table_name
+    print(ci_table_name)
+    temp_path = "temp_csv"
+    with open(temp_path, "w") as f:
+        f.write(csv)
+
+    copy_csv_to_table(temp_path, get_engine(), ci_table_name)
+    os.unlink(temp_path)
+
     spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
     upload_csv(spreadsheet_title, csv.encode("utf-8"))
 
@@ -350,6 +365,15 @@ def extract_user_group(vendor: Vendor, users: List[UserStats], pure: bool = Fals
     return [u for u in users
             if u.isp == vendor.isp
             or u.infra == vendor.infra]
+
+
+def copy_csv_to_table(path: str, connection: psycopg2.extensions.connection, table_name: str):
+    cur = connection.cursor()
+    with open(path, 'r') as f:
+        next(f)  # skip header
+        cur.copy_from(f, table_name, sep=',')
+
+    connection.commit()
 
 
 def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], pure_vendor: bool, is_evening: bool):
@@ -377,8 +401,11 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], p
 
 
 if __name__ == "__main__":
+    # Init CI tables
+    ci_table_initiator = CITablesInit()
+    ci_table_initiator.init_all_ci_tables()
+
     for pv in [True, False]:
         for iv in [True, False]:
-            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
             calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
     print("ALL DONE")
