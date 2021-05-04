@@ -439,5 +439,6 @@ if __name__ == "__main__":
         for iv in [True, False]:
             calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
 
+    print("uploading ci summary tables")
     create_summary_ci_tables()
     print("ALL DONE")

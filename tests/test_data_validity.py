@@ -154,8 +154,6 @@ class TestDataValidity(unittest.TestCase):
         random_sample_evening = self.get_rows(
             "select user_name, count(*) from test_random_sample_evening group by user_name")
         for _user_name, count in random_sample_evening:
-            if _user_name == "admin":
-                continue
             self.assertEqual(300, count, f"user: {_user_name} has {count} tests")
 
         speeds = self.get_rows("select speed from test_random_sample_evening")
