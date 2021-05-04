@@ -77,7 +77,7 @@ class RandomSample:
                     and connection = 'LAN'
                     and num_test >= 700
                     and is_classic_resource(file_name)
-                    limit 300;
+                    order by random_index limit 300;
             end loop;
                 end;
             $$;
@@ -114,7 +114,7 @@ class RandomSample:
                 and num_test >= 700
                 and is_classic_resource(file_name)
                 and evening is True
-                limit 300;
+                order by random_index limit 300;
             end loop;
                 end;
             $$;
@@ -127,13 +127,11 @@ if __name__ == "__main__":
     random_sample.create_user_stats_view()
     print("creating randomized valid tests")
     random_sample.create_randomized_valid_test_table()
-    # print("done")
-    # quit()
-
     print("sampling tests")
     random_sample.create_random_sample()
     print("sampling evening tests")
     random_sample.create_random_sample_evening()
+
     for _ in random_sample.iterate_lines("select * from test_random_sample"):
         print(_)
 
