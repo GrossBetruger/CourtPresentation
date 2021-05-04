@@ -116,7 +116,7 @@ class TestDataValidity(unittest.TestCase):
 
         # random sample data persistency
         randomized_valid_test = self.get_rows("select ground_truth_rate, user_name, file_name, timestamp, random_index"
-                                              " from randomized_valid_tests")
+                                              " from randomized_valid_tests order by random_index")
 
         second = (6.437308051433778, 'ben_b', 'go', 1540301748578, 1.1055979456386922e-06)
         last_row = (63.250679088980895, 'etl', 'firefox', 1571828370256, 0.9999999137277591)
@@ -138,9 +138,9 @@ class TestDataValidity(unittest.TestCase):
         self.assertEqual(last_row, sample[-1])
         self.assertEqual(row_minus_1000, sample[-1000])
 
-        public_access_resources = ["file_name","amazon-workSpaces",
-                                   "windows-games","windows-games-studio",
-                                   "my-sql","dlink","vlc","go","firefox","quicktime"]
+        public_access_resources = ["file_name", "amazon-workSpaces",
+                                   "windows-games", "windows-games-studio",
+                                   "my-sql", "dlink", "vlc", "go", "firefox", "quicktime"]
 
         for _, _, _, filename in sample:
             self.assertIn(filename, public_access_resources)
@@ -160,6 +160,48 @@ class TestDataValidity(unittest.TestCase):
         speeds = self.get_rows("select speed from test_random_sample_evening")
         for speed, in speeds:
             self.assertIn(speed, [100, 200, 500, 1000])
+
+    def test_ci_tables(self):
+        # Test CI Tables data persistency
+        bezeq_ci = self.get_rows("select * from bezeq_ci")
+        bezeq_ci_first_row = ('yarden', '100', 'Cellcom Fixed Line Communication L.P.', 'BEZEQ',
+                              '24.17307459253051', '22.419327471344598', '25.92682171371644', '0.9989583333333333')
+        bezeq_ci_last_row = ('raz', '100', 'Hot-Net internet services Ltd.', 'BEZEQ', '66.30938669799932',
+                             '61.388106035193466', '71.23066736080521', '0.9989583333333333')
+        bezeq_ci_tenth_row = ('nimrod', '100', '013 NetVision Ltd', 'BEZEQ', '31.192815980664005',
+                              '29.223790648991308', '33.16184131233672', '0.9989583333333333')
+
+        self.assertEqual(bezeq_ci_first_row, bezeq_ci[0])
+        self.assertEqual(bezeq_ci_last_row, bezeq_ci[-1])
+        self.assertEqual(bezeq_ci_tenth_row, bezeq_ci[10])
+
+        pure_bezeq_ci = self.get_rows("select * from pure_bezeq_ci")
+        pure_bezeq_ci_first = ('michael', '100', 'Bezeq International-Ltd', 'BEZEQ',
+                               '29.66160497821917', '29.077337604229974',
+                               '30.245872352208366', '0.9970588235294118')
+        pure_bezeq_ci_last = (
+            'alon', '100', 'Bezeq International-Ltd', 'BEZEQ', '64.8046254918595', '60.96868027095032',
+            '68.64057071276866',
+            '0.9970588235294118')
+        pure_bezeq_ci_tenth = (
+            'rina', '100', 'Bezeq International-Ltd', 'BEZEQ', '52.732937250037054', '48.413901608636756',
+            '57.05197289143735', '0.9970588235294118')
+
+        self.assertEqual(pure_bezeq_ci_first, pure_bezeq_ci[0])
+        self.assertEqual(pure_bezeq_ci_last, pure_bezeq_ci[-1])
+        self.assertEqual(pure_bezeq_ci_tenth, pure_bezeq_ci[10])
+
+        hot_ci = self.get_rows("select * from hot_ci")
+        hot_ci_first_row = ('rom', '100', 'Hot-Net internet services Ltd.', 'HOT',
+                            '12.34002004187883', '10.041289542437283', '14.638750541320395', '0.9985714285714286')
+        hot_ci_last_row = ('barak', '100', '013 NetVision Ltd', 'HOT', '114.77583966117818',
+                           '104.20295342751203', '125.3487258948444', '0.9985714285714286')
+        hot_ci_tenth_row = ('alon_s', '100', 'ITC NG ltd', 'HOT', '49.53545118889848',
+                            '43.974820709604955', '55.09608166819204', '0.9985714285714286')
+
+        self.assertEqual(hot_ci_first_row, hot_ci[0])
+        self.assertEqual(hot_ci_last_row, hot_ci[-1])
+        self.assertEqual(hot_ci_tenth_row, hot_ci[10])
 
 
 if __name__ == '__main__':
