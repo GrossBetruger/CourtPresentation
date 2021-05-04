@@ -1,4 +1,5 @@
 import os
+from io import StringIO
 
 import numpy as np
 import pandas as pd
@@ -339,19 +340,19 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
         .sort_values(UPPER_BOUND_KEY_HEBREW) \
         .to_csv(sep=",", columns=columns, index=False)
 
+    csv_no_header = pd.DataFrame() \
+        .from_records([u.to_dict() for u in users_with_ci_results]) \
+        .sort_values(UPPER_BOUND_KEY_HEBREW) \
+        .to_csv(sep=",", columns=columns, index=False, header=False)
+
     ci_table_name = vendor.infra.lower() + "_ci"
     if evening is True:
         ci_table_name += "_evening"
     if pure is True:
         ci_table_name = "pure_" + ci_table_name
-    print(ci_table_name)
-    temp_path = "temp_csv"
-    with open(temp_path, "w") as f:
-        f.write(csv)
-
-    copy_csv_to_table(temp_path, get_engine(), ci_table_name)
-    os.unlink(temp_path)
-
+    print(f"copying to: '{ci_table_name}'")
+    copy_csv_to_table(StringIO(csv_no_header), get_engine(), ci_table_name)
+    
     spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
     upload_csv(spreadsheet_title, csv.encode("utf-8"))
 
@@ -367,12 +368,11 @@ def extract_user_group(vendor: Vendor, users: List[UserStats], pure: bool = Fals
             or u.infra == vendor.infra]
 
 
-def copy_csv_to_table(path: str, connection: psycopg2.extensions.connection, table_name: str):
+def copy_csv_to_table(csv: StringIO, connection: psycopg2.extensions.connection, table_name: str):
     cur = connection.cursor()
-    with open(path, 'r') as f:
-        next(f)  # skip header
-        cur.copy_from(f, table_name, sep=',')
-
+    # with open(path, 'r') as f:
+    #     next(f)  # skip header
+    cur.copy_from(csv, table_name, sep=',')
     connection.commit()
 
 
