@@ -17,7 +17,7 @@ from psycopg2.extensions import cursor
 from confidence_intervals.init_ci_tables import CITablesInit
 from confidence_intervals.queries import CI_HIGHLEVEL_QUERY_ISP_OR_INFRA, CI_HIGHLEVEL_QUERY_ISP_AND_INFRA
 from utils import get_engine, get_rows
-from googlesheet_updater import upload_csv
+from googlesheet_updater import update_sheet
 
 SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA = "ממצאי רווח סמך (ספקית + תשתית)"
 
@@ -340,15 +340,11 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
                UPPER_BOUND_KEY_HEBREW,
                CONFIDENCE_LEVEL_KEY_HEBREW]
 
-    csv = pd.DataFrame() \
-        .from_records([u.to_dict() for u in users_with_ci_results]) \
+    data = pd.DataFrame() \
+        .from_records([u.to_dict() for u in users_with_ci_results], columns=columns) \
         .sort_values(UPPER_BOUND_KEY_HEBREW) \
-        .to_csv(sep=",", columns=columns, index=False)
 
-    csv_no_header = pd.DataFrame() \
-        .from_records([u.to_dict() for u in users_with_ci_results]) \
-        .sort_values(UPPER_BOUND_KEY_HEBREW) \
-        .to_csv(sep=",", columns=columns, index=False, header=False)
+    csv_no_header = data.to_csv(sep=",", columns=columns, index=False, header=False)
 
     ci_table_name = vendor.infra.lower() + "_ci"
     if evening is True:
@@ -359,7 +355,7 @@ def calculate_ci_stats_for_user_group(user_group: List[UserStats], vendor: Vendo
     copy_csv_to_table(StringIO(csv_no_header), get_engine(), ci_table_name)
 
     spreadsheet_title = get_sheet_title(vendor, is_pure=pure, is_evening=evening)
-    upload_csv(spreadsheet_title, csv.encode("utf-8"))
+    update_sheet(spreadsheet_title, data)
 
 
 def extract_user_group(vendor: Vendor, users: List[UserStats], pure: bool = False):
@@ -403,31 +399,33 @@ def calc_confidence_mean_for_random_sample(k: int, default_rates: List[float], p
     calculate_ci_stats_for_user_group(partner_users, PARTNER, all_user_tests, k, default_rates, pure_vendor, is_evening)
 
 
-def summary_isp_or_infra_header():
-    header = [("ספקית או תשתית",
+def summary_isp_or_infra_header() -> Tuple[str, str, str, str, str, str]:
+    header = ("ספקית או תשתית",
                "מספר משתמשים",
                "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה",
                "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה בשעות הערב",
                "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה",
-               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב")]
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב")
     return header
 
 
-def summary_isp_and_infra_header() -> List[tuple]:
-    header = [("ספקית + תשתית",
+def summary_isp_and_infra_header() -> Tuple[str, str, str, str, str, str]:
+    header = ("ספקית + תשתית",
                "מספר משתמשים",
                "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה",
                "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה בשעות הערב",
                "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה",
-               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב")]
+               "מ. משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב")
     return header
 
 
 def create_summary_ci_tables():
-    isp_or_infra = pd.DataFrame.from_records(summary_isp_or_infra_header() + get_rows(CI_HIGHLEVEL_QUERY_ISP_OR_INFRA))
-    isp_and_infra = pd.DataFrame.from_records(summary_isp_and_infra_header() + get_rows(CI_HIGHLEVEL_QUERY_ISP_AND_INFRA))
-    upload_csv(SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA, isp_or_infra.to_csv(index=False, header=False).encode("utf-8"))
-    upload_csv(SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA, isp_and_infra.to_csv(index=False, header=False).encode("utf-8"))
+    isp_or_infra = pd.DataFrame.from_records(get_rows(CI_HIGHLEVEL_QUERY_ISP_OR_INFRA),
+                                             columns=summary_isp_or_infra_header())
+    isp_and_infra = pd.DataFrame.from_records(get_rows(CI_HIGHLEVEL_QUERY_ISP_AND_INFRA),
+                                              columns=summary_isp_and_infra_header())
+    update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA, isp_or_infra)
+    update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA, isp_and_infra)
 
 
 if __name__ == "__main__":

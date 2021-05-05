@@ -1,10 +1,10 @@
 import unittest
-import pandas as pd
-from typing import List
 
+
+from typing import List
 from googlesheet_updater import read_sheet
 from utils import get_engine
-from confidence_intervals import *
+
 
 class TestDataValidity(unittest.TestCase):
     engine = get_engine()

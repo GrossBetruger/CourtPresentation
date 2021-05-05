@@ -1,8 +1,9 @@
-from typing import Union, List
-
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import os
+import gspread
+
+from typing import Union, List
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
 
 scope = ['https://www.googleapis.com/auth/spreadsheets',
          'https://www.googleapis.com/auth/drive.file',
@@ -26,6 +27,8 @@ def read_sheet(title: str) -> List[tuple]:
     return sheet.get_all_records()
 
 
-def upload_csv(spreadsheet_title: str, csv_raw: Union[str, bytes]):
+def update_sheet(spreadsheet_title: str, data: pd.DataFrame):
     global client
-    client.import_csv(get_sheet_id_by_title(client, spreadsheet_title), csv_raw)
+    data = [data.columns.values.tolist()] + data.values.tolist()
+    worksheet = client.open(spreadsheet_title).sheet1
+    worksheet.update(data)
