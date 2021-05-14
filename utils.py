@@ -21,6 +21,14 @@ def get_engine() -> psycopg2.extensions.connection:
     return conn
 
 
+def get_remote_engine() -> psycopg2.extensions.connection:
+    print(os.environ.get('RDS_PASSWORD'))
+    conn = psycopg2.connect(f"dbname='caseyellow' user='dango' "
+                            f"host='caseyellow.cgqzew4kdsmr.eu-central-1.rds.amazonaws.com'"
+                            f"password='{os.environ.get('RDS_PASSWORD')}'")
+    return conn
+
+
 def get_rows(read_only_query: str) -> List[tuple]:
     conn = get_engine()
     cur = conn.cursor()
