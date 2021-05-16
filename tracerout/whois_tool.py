@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import ttl_cache
 from typing import Set, List, Union, Optional
 
 from ipwhois import IPWhois
@@ -9,7 +10,8 @@ from utils import get_engine, get_rows
 CREATE_WHOIS_CACHE = """
     create table if not exists whois_data (
         cidr cidr,
-        data json
+        data json,
+        unique (cidr)
     );
 """
 
@@ -18,15 +20,21 @@ engine.cursor().execute(CREATE_WHOIS_CACHE)
 engine.commit()
 
 
-def whois_lookup(ip: str, use_cache=True) -> dict:
+@ttl_cache(1000)
+def whois_lookup(ip: str, use_cache=True) -> Optional[dict]:
     """Perform Whois lookup for a given IP
         :ip: Ip to peform whois lookup
     """
 
-    cached_cidr = check_ip_in_cache(ipaddress.ip_address(ip))
-    if use_cache is True and cached_cidr:
-        return read_whois_cache(cached_cidr)
+    ip_obj = ipaddress.ip_address(ip)
+    if ip_obj.is_private is True:
+        return
 
+    cached_cidr = check_ip_in_cache(ip_obj)
+    if use_cache is True and cached_cidr:
+        print("Cache HIT!")
+        return read_whois_cache(cached_cidr)
+    print("cache miss")
     obj = IPWhois(ip)
 
     # cidr, ranges = "CIDR not found", "Range not found"
@@ -34,9 +42,11 @@ def whois_lookup(ip: str, use_cache=True) -> dict:
     # Get whois for IP. Returns a list with dictionary
     # ip_dict = IPWhois(ip).lookup_rws()
     response = obj.lookup_whois()
-    cidr = None
+    # cidr = None
     if response['nets'][0].get('cidr'):
         cidr = response['nets'][0].get('cidr')
+    else:
+        return
     details = response['nets'][0]
     name = details['name']
     city = details['city']
@@ -45,8 +55,12 @@ def whois_lookup(ip: str, use_cache=True) -> dict:
     address = details['address']
     description = details['description']
 
-    return {'cidr': cidr, 'name': name, 'city': city, 'state': state,
-            'country': country, 'address': address, 'description': description}
+    cidrs = cidr.split(", ")
+    for cidr in cidrs:
+        whois_data = {'cidr': cidr, 'name': name, 'city': city, 'state': state,
+                'country': country, 'address': address, 'description': description}
+        update_whois_cache(cidr, whois_data)
+        return whois_data
 
 
 def update_whois_cache(cidr: str, whois_data: dict):
@@ -66,6 +80,7 @@ def get_all_cidrs() -> List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]
     return cidrs
 
 
+@ttl_cache(1000)
 def check_ip_in_cache(ip: Union[ipaddress.IPv4Network, ipaddress.IPv6Network]) -> Optional[str]:
     # ip = ipaddress.ip_network('192.168.0.0/24')
     for cidr in get_all_cidrs():
