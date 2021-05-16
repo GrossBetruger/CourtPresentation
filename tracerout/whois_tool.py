@@ -1,11 +1,12 @@
 import ipaddress
 import json
+import psycopg2
 import ttl_cache
-from typing import Set, List, Union, Optional
 
+from typing import List, Union, Optional
 from ipwhois import IPWhois
-
 from utils import get_engine, get_rows
+
 
 CREATE_WHOIS_CACHE = """
     create table if not exists whois_data (
@@ -59,15 +60,23 @@ def whois_lookup(ip: str, use_cache=True) -> Optional[dict]:
     for cidr in cidrs:
         whois_data = {'cidr': cidr, 'name': name, 'city': city, 'state': state,
                 'country': country, 'address': address, 'description': description}
-        update_whois_cache(cidr, whois_data)
+        try:
+            update_whois_cache(cidr, whois_data)
+        except psycopg2.errors.UniqueViolation:
+            print(f"cidr already cached: {cidr}")
         return whois_data
 
 
 def update_whois_cache(cidr: str, whois_data: dict):
-    engine.cursor().execute(
-        "insert into whois_data values (%s, %s)",
-        (cidr, json.dumps(whois_data))
-    )
+    try:
+        engine.cursor().execute(
+            "insert into whois_data values (%s, %s)",
+            (cidr, json.dumps(whois_data))
+        )
+    except psycopg2.errors.UniqueViolation:
+        print(f"cidr already cached: {cidr}")
+        engine.rollback()
+
     engine.commit()
 
 
@@ -82,7 +91,6 @@ def get_all_cidrs() -> List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]
 
 @ttl_cache(1000)
 def check_ip_in_cache(ip: Union[ipaddress.IPv4Network, ipaddress.IPv6Network]) -> Optional[str]:
-    # ip = ipaddress.ip_network('192.168.0.0/24')
     for cidr in get_all_cidrs():
         if ip in cidr:
             return str(cidr)
