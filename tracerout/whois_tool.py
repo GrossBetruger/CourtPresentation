@@ -1,8 +1,10 @@
+import ipaddress
 import json
+from typing import Set, List, Union, Optional
 
 from ipwhois import IPWhois
 
-from utils import get_engine
+from utils import get_engine, get_rows
 
 CREATE_WHOIS_CACHE = """
     create table if not exists whois_data (
@@ -16,10 +18,15 @@ engine.cursor().execute(CREATE_WHOIS_CACHE)
 engine.commit()
 
 
-def whois_lookup(ip):
+def whois_lookup(ip: str, use_cache=True) -> dict:
     """Perform Whois lookup for a given IP
         :ip: Ip to peform whois lookup
     """
+
+    cached_cidr = check_ip_in_cache(ipaddress.ip_address(ip))
+    if use_cache is True and cached_cidr:
+        return read_whois_cache(cached_cidr)
+
     obj = IPWhois(ip)
 
     # cidr, ranges = "CIDR not found", "Range not found"
@@ -50,7 +57,23 @@ def update_whois_cache(cidr: str, whois_data: dict):
     engine.commit()
 
 
+def read_whois_cache(cidr: str):
+    return get_rows("select data from whois_data where cidr = %s", (cidr,))[0][0]
+
+
+def get_all_cidrs() -> List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]:
+    cidrs = [ipaddress.ip_network(x[0]) for x in get_rows("select cidr from whois_data")]
+    return cidrs
+
+
+def check_ip_in_cache(ip: Union[ipaddress.IPv4Network, ipaddress.IPv6Network]) -> Optional[str]:
+    # ip = ipaddress.ip_network('192.168.0.0/24')
+    for cidr in get_all_cidrs():
+        if ip in cidr:
+            return str(cidr)
+
+
 if __name__ == "__main__":
-    whois_data = whois_lookup("185.149.252.109")
-    print(whois_data["cidr"])
-    # update_whois_cache(whois_data["cidr"], whois_data)
+    whois_data = whois_lookup(ipaddress.ip_address("31.210.191.17"))
+    # print(whois_data["cidr"])
+    update_whois_cache(whois_data["cidr"], whois_data)

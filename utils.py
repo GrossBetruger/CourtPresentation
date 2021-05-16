@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 
 import psycopg2
 from arabic_reshaper import arabic_reshaper
@@ -29,10 +29,10 @@ def get_remote_engine() -> psycopg2.extensions.connection:
     return conn
 
 
-def get_rows(read_only_query: str) -> List[tuple]:
+def get_rows(read_only_query: str, args: Optional[tuple] = None) -> List[tuple]:
     conn = get_engine()
     cur = conn.cursor()
-    cur.execute(read_only_query)
+    cur.execute(read_only_query, args or ())
     rows = []
     for row in cur.fetchall():
         rows.append(row)
