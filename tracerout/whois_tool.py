@@ -2,8 +2,9 @@ import ipaddress
 import json
 import psycopg2
 import ttl_cache
+import ipwhois
 
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Generator
 from ipwhois import IPWhois
 from utils import get_engine, get_rows
 
@@ -11,7 +12,9 @@ from utils import get_engine, get_rows
 CREATE_WHOIS_CACHE = """
     create table if not exists whois_data (
         cidr cidr,
+        reference_filename text,
         data json,
+        last_updated timestamptz,
         unique (cidr)
     );
 """
@@ -21,33 +24,38 @@ engine.cursor().execute(CREATE_WHOIS_CACHE)
 engine.commit()
 
 
-@ttl_cache(1000)
-def whois_lookup(ip: str, use_cache=True) -> Optional[dict]:
+# @ttl_cache(1000)
+def whois_lookup(ip: str, file_name: str, use_cache=True) -> Generator[None, None, Optional[dict]]:
     """Perform Whois lookup for a given IP
         :ip: Ip to peform whois lookup
+        :returns Optional[dict] with whois data
     """
-
     ip_obj = ipaddress.ip_address(ip)
     if ip_obj.is_private is True:
+        print(ip_obj, "is private")
         return
 
     cached_cidr = check_ip_in_cache(ip_obj)
     if use_cache is True and cached_cidr:
-        print("Cache HIT!")
+        print(f"Cache HIT! {ip, cached_cidr}")
         return read_whois_cache(cached_cidr)
-    print("cache miss")
-    obj = IPWhois(ip)
 
-    # cidr, ranges = "CIDR not found", "Range not found"
+    print(f"cache miss: {ip}")
 
-    # Get whois for IP. Returns a list with dictionary
-    # ip_dict = IPWhois(ip).lookup_rws()
-    response = obj.lookup_whois()
-    # cidr = None
+    response = None
+    try:
+        obj = IPWhois(ip)
+        response = obj.lookup_whois()
+    except ipwhois.exceptions.IPDefinedError:
+        return
+
+    cidr = None
     if response['nets'][0].get('cidr'):
         cidr = response['nets'][0].get('cidr')
-    else:
+
+    if cidr is None:
         return
+
     details = response['nets'][0]
     name = details['name']
     city = details['city']
@@ -57,27 +65,28 @@ def whois_lookup(ip: str, use_cache=True) -> Optional[dict]:
     description = details['description']
 
     cidrs = cidr.split(", ")
+    print(f"cidrs: {cidrs}")
     for cidr in cidrs:
         whois_data = {'cidr': cidr, 'name': name, 'city': city, 'state': state,
                 'country': country, 'address': address, 'description': description}
-        try:
-            update_whois_cache(cidr, whois_data)
-        except psycopg2.errors.UniqueViolation:
-            print(f"cidr already cached: {cidr}")
-        return whois_data
+
+        update_whois_cache(cidr, file_name, whois_data)
+        yield whois_data
 
 
-def update_whois_cache(cidr: str, whois_data: dict):
+def update_whois_cache(cidr: str, filename: str, whoisdata: dict):
     try:
         engine.cursor().execute(
-            "insert into whois_data values (%s, %s)",
-            (cidr, json.dumps(whois_data))
+            "insert into whois_data values (%s, %s, %s, timezone('Israel',now()::timestamptz))",
+            (cidr, filename, json.dumps(whoisdata))
         )
     except psycopg2.errors.UniqueViolation:
-        print(f"cidr already cached: {cidr}")
         engine.rollback()
+        print(f"cidr already cached: {cidr}")
+        return
 
     engine.commit()
+    print(f"updated: {cidr}")
 
 
 def read_whois_cache(cidr: str):
@@ -97,6 +106,6 @@ def check_ip_in_cache(ip: Union[ipaddress.IPv4Network, ipaddress.IPv6Network]) -
 
 
 if __name__ == "__main__":
-    whois_data = whois_lookup(ipaddress.ip_address("31.210.191.17"))
-    # print(whois_data["cidr"])
-    update_whois_cache(whois_data["cidr"], whois_data)
+    ip_obj = ipaddress.ip_address("13.32.145.149")
+    print(check_ip_in_cache(ip_obj))
+    pass

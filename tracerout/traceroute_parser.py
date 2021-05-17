@@ -21,16 +21,10 @@ def populate_whois_cache():
         ips = re.findall("\[(.+?)]", pre)
         print(file)
         for ip in ips:
-            whois_data = whois_lookup(ip)
-            if whois_data is None:
-                print(f"private: {ip}")
-                continue
-            print(f"cidr key: {whois_data['cidr']}")
-            assert type(whois_data["cidr"]) == str
-            cidrs = whois_data["cidr"].split(", ")
-            for cidr in cidrs:
-                print(f"cidr: {cidr}")
-            print()
+            for whois_data in whois_lookup(ip, file):
+                if whois_data is None:
+                    print(f"private: {ip}")
+                    continue
     print("ALL DONE")
 
 
