@@ -8,7 +8,7 @@ import matplotlib.pyplot as plot
 from pathlib import Path
 from collections import defaultdict
 from typing import List, Tuple
-from confidence_intervals import get_engine
+from utils import get_engine
 from psycopg2.extensions import cursor
 from enum import Enum
 from utils import normalize_hebrew
@@ -229,6 +229,7 @@ def create_snapshot_path(directory: str):
 
     return snapshots_path
 
+
 def ground_truth_main():
     violin_data = defaultdict(list)
     internet_speeds = [40, 100, 200]
@@ -237,6 +238,7 @@ def ground_truth_main():
             num_users = count_users(users, speed)
             if num_users < 8:
                 print(f'not enough users for {users}, {speed} skipping')
+                continue
             ground_truth_rates = get_ground_truth_speeds_by_vendor(users, speed)
             vendor_name_hebrew = normalize_hebrew(vendor_to_hebrew_name(users))
 

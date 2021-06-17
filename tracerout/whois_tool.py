@@ -24,7 +24,7 @@ engine.cursor().execute(CREATE_WHOIS_CACHE)
 engine.commit()
 
 
-# @ttl_cache(1000)
+@ttl_cache(1000)
 def whois_lookup(ip: str, file_name: str, use_cache=True) -> Generator[None, None, Optional[dict]]:
     """Perform Whois lookup for a given IP
         :ip: Ip to peform whois lookup
