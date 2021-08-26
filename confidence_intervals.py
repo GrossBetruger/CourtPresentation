@@ -427,6 +427,42 @@ def create_summary_ci_tables():
     update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA, isp_or_infra)
     update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA, isp_and_infra)
 
+    best_users_isp_plus_infra = create_user_performance_tables(vendor_logic='and')
+    best_users_isp_or_infra = create_user_performance_tables(vendor_logic='or')
+    pretty_print_df(best_users_isp_plus_infra)
+    pretty_print_df(best_users_isp_or_infra)
+    print("updating 80+ tables...")
+    update_sheet('משתמשי 80+ ספקית + תשתית', best_users_isp_plus_infra)
+    update_sheet('משתמשי 80+ ספקית או תשתית', best_users_isp_or_infra)
+
+
+def pretty_print_df(df: pd.DataFrame):
+    with pd.option_context('expand_frame_repr', False,
+                           'display.max_rows', None,
+                           'display.max_columns', None):
+        print(df)
+
+
+def create_user_performance_tables(ratio: float = 0.8, vendor_logic: str ='or'):
+    engine = get_engine()
+    cur = engine.cursor()
+    base_query = """select count(distinct "שם_משתמש") from {}
+                    where "גבול_עליון"::float >= "תכנית"::float * {};"""
+    raw_result = []
+    vendor_prefix = '' if vendor_logic == 'or' else 'pure_'
+    vendor_column = 'ספקית או תשתית' if vendor_logic == 'or' else 'ספקית + תשתית'
+    for vendor, vendor_heb in [('bezeq', 'בזק'), ('hot', 'הוט'), ('partner', 'פרטנר')]:
+        table_name = vendor_prefix + vendor + '_' + 'ci'
+        cur.execute(base_query.format(table_name, ratio))
+        above_ratio_user_count = cur.fetchall()[0][0]
+        cur.execute('select count(distinct "שם_משתמש") from {}'.format(table_name))
+        overall_user_count = cur.fetchall()[0][0]
+        raw_result.append({vendor_column: vendor_heb,
+                           "מספר משתמשים שמהירות הגלישה הממוצעת שלהם גבוהה מ-80% מהירות החבילה": above_ratio_user_count,
+                          'מספר משתמשים': overall_user_count})
+    result = pd.DataFrame(raw_result)
+    return result
+
 
 if __name__ == "__main__":
     # Init CI tables

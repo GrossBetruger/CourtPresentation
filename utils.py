@@ -32,7 +32,8 @@ def get_remote_engine() -> psycopg2.extensions.connection:
 def get_rows(read_only_query: str, args: Optional[tuple] = None) -> List[tuple]:
     conn = get_engine()
     cur = conn.cursor()
-    cur.execute(read_only_query, args or ())
+
+    cur.execute(read_only_query, args)
     rows = []
     for row in cur.fetchall():
         rows.append(row)
