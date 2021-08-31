@@ -90,7 +90,7 @@ def update_whois_cache(cidr: str, filename: str, whoisdata: dict):
 
 
 def read_whois_cache(cidr: str):
-    return get_rows("select data from whois_data where cidr = %s", (cidr,))[0][0]
+    return get_rows("select data from whois_data where cidr >> '31.210.191.17'", (cidr,))[0][0]
 
 
 def get_all_cidrs() -> List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]:

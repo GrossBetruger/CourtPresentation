@@ -16,7 +16,7 @@ from psycopg2.extensions import cursor
 
 from confidence_intervals.init_ci_tables import CITablesInit
 from confidence_intervals.queries import CI_HIGHLEVEL_QUERY_ISP_OR_INFRA, CI_HIGHLEVEL_QUERY_ISP_AND_INFRA
-from utils import get_engine, get_rows
+from utils import get_engine, get_rows, get_sql_alchemy_engine
 from googlesheet_updater import update_sheet
 
 SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA = "ממצאי רווח סמך (ספקית + תשתית)"
@@ -464,7 +464,42 @@ def create_user_performance_tables(ratio: float = 0.8, vendor_logic: str ='or'):
     return result
 
 
+def ci_tables_to_df() -> pd.DataFrame:
+    engine = get_sql_alchemy_engine()
+    vendor_tables = list()
+    for vendor in ["bezeq", "hot", "partner"]:
+        vendor_table_name = vendor + "_ci"
+        vendor_table_name_evening = vendor_table_name + "_evening"
+        pure_vendor_table_name = "pure_" + vendor_table_name
+        pure_vendor_table_name_evening = pure_vendor_table_name + "_evening"
+
+        vendor_table = pd.read_sql_table(vendor_table_name, engine)
+        vendor_table_evening = pd.read_sql_table(vendor_table_name_evening, engine)
+        pure_vendor_table = pd.read_sql_table(pure_vendor_table_name, engine)
+        pure_vendor_table_evening = pd.read_sql_table(pure_vendor_table_name_evening, engine)
+
+        vendor_table["evening"] = False
+        vendor_table["group"] = vendor
+        pure_vendor_table["evening"] = False
+        pure_vendor_table["group"] = "pure_" + vendor
+        vendor_table_evening["evening"] = True
+        vendor_table_evening["group"] = vendor
+        pure_vendor_table_evening["evening"] = True
+        pure_vendor_table_evening["group"] = "pure_" + vendor
+
+        for table in [vendor_table, pure_vendor_table, vendor_table_evening, pure_vendor_table_evening]:
+            vendor_tables.append(table)
+    all_ci_tables = pd.concat(vendor_tables, ignore_index=True)
+    return all_ci_tables
+
+
 if __name__ == "__main__":
+    ci_data = ci_tables_to_df()
+    hot_3 = ci_data[(ci_data["group"] == "hot") & (ci_data["evening"] == True) &
+                          (ci_data[UPPER_BOUND_KEY_HEBREW.replace(" ", "_")].astype(float) / ci_data[USER_SPEED_PROGRAM_KEY_HEBREW.replace(" ", "_")].astype(float)   < 0.33)]
+    print(len(hot_3))
+    quit()
+
     # Init CI tables
     ci_table_initiator = CITablesInit()
     ci_table_initiator.init_all_ci_tables()

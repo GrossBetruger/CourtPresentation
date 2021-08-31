@@ -7,7 +7,8 @@ from tracerout.whois_tool import whois_lookup, check_ip_in_cache
 
 class TestTraceroute(unittest.TestCase):
     def test_whois(self):
-        whois = whois_lookup("31.210.191.17")
+        print(list(whois_lookup("31.210.191.17", "go")))
+        whois = list(whois_lookup("31.210.191.17", "go"))[0]
         self.assertEqual("IL", whois["country"])
         self.assertEqual("XFONE_Broadband", whois["name"])
         self.assertEqual("1 Bet Sheva st. Lod", whois["address"])

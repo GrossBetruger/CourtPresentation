@@ -1,9 +1,10 @@
 import os
-from typing import List, Optional
-
 import psycopg2
+
+from typing import List, Optional
 from arabic_reshaper import arabic_reshaper
 from bidi.algorithm import get_display
+from sqlalchemy import create_engine
 
 PGPASS = "~/.pgpass"
 
@@ -19,6 +20,11 @@ def read_password() -> str:
 def get_engine() -> psycopg2.extensions.connection:
     conn = psycopg2.connect(f"dbname='postgres' user='postgres' host='localhost' password='{read_password()}'")
     return conn
+
+
+def get_sql_alchemy_engine():
+    engine = create_engine(f'postgresql://postgres:{read_password()}@localhost:5432/postgres')
+    return engine
 
 
 def get_remote_engine() -> psycopg2.extensions.connection:
