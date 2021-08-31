@@ -141,7 +141,7 @@ nest-asyncio==1.5.1
 nftables==0.1
 nodeenv==1.6.0
 normality==2.1.1
-notebook==6.3.0
+notebook==6.4.1
 ntplib==0.3.3
 numba==0.53.1
 numexpr==2.7.3
