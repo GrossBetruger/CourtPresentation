@@ -1,3 +1,4 @@
+import json
 import os
 from io import StringIO
 
@@ -14,8 +15,8 @@ from random import choice
 from typing import Optional, List, Dict, Tuple, Any
 from psycopg2.extensions import cursor
 
-from confidence_intervals.init_ci_tables import CITablesInit
-from confidence_intervals.queries import CI_HIGHLEVEL_QUERY_ISP_OR_INFRA, CI_HIGHLEVEL_QUERY_ISP_AND_INFRA
+from confidence_interval_utils.init_ci_tables import CITablesInit
+from confidence_interval_utils.queries import CI_HIGHLEVEL_QUERY_ISP_OR_INFRA, CI_HIGHLEVEL_QUERY_ISP_AND_INFRA
 from utils import get_engine, get_rows, get_sql_alchemy_engine
 from googlesheet_updater import update_sheet
 
@@ -493,11 +494,51 @@ def ci_tables_to_df() -> pd.DataFrame:
     return all_ci_tables
 
 
+def calculate_users_below_bound(ci_data: pd.DataFrame, group: str, evening: bool, bound: float) -> str:
+    users = ci_data[(ci_data["group"] == group) & (ci_data["evening"] == evening)]
+    users_blow_bound: int = len(users[(users[UPPER_BOUND_KEY_HEBREW.replace(" ", "_")].astype(float) /
+                        users[USER_SPEED_PROGRAM_KEY_HEBREW.replace(" ", "_")].astype(float) < bound)])
+    ratio = (users_blow_bound / len(users)) * 100
+    return f'{users_blow_bound} ({ratio:.2f}%)'
+
+
+def calculate_users_above_bound(ci_data: pd.DataFrame, group: str, evening: bool, bound: float) -> str:
+    users = ci_data[(ci_data["group"] == group) & (ci_data["evening"] == evening)]
+    users_above_bound: int = len(users[(users[UPPER_BOUND_KEY_HEBREW.replace(" ", "_")].astype(float) /
+                        users[USER_SPEED_PROGRAM_KEY_HEBREW.replace(" ", "_")].astype(float) >= bound)])
+    ratio = (users_above_bound / len(users)) * 100
+    return f'{users_above_bound} ({ratio:.2f}%)'
+
+
+def create_ci_table(ci_data: pd.DataFrame, pure=False) -> pd.DataFrame:
+    raw_table = list()
+    for vendor in ["bezeq", "hot", "partner"]:
+        raw_item = dict()
+        vendor = vendor if pure is False else "pure_" + vendor
+        vendor_column = "ספקית או תשתית" if pure is False else "ספקית + תשתית"
+        raw_item[vendor_column] = vendor
+        raw_item["מספר משתמשים"] = len(ci_data[(ci_data["group"] == vendor) & (ci_data["evening"] == False)])
+        raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה"] = \
+            calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=False, bound=1/2)
+        raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה בשעות הערב"] = \
+            calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=True, bound=1 / 2)
+        raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה"] = \
+            calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=False, bound=1/3)
+        raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב"] = \
+            calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=True, bound=1/3)
+        raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם גבוהה מ-80% הבטחת החבילה"] = \
+            calculate_users_above_bound(ci_data=ci_data, group=vendor, evening=False, bound=4/5)
+        raw_table.append(raw_item)
+    return pd.DataFrame.from_dict(raw_table)
+
+
 if __name__ == "__main__":
     ci_data = ci_tables_to_df()
-    hot_3 = ci_data[(ci_data["group"] == "hot") & (ci_data["evening"] == True) &
-                          (ci_data[UPPER_BOUND_KEY_HEBREW.replace(" ", "_")].astype(float) / ci_data[USER_SPEED_PROGRAM_KEY_HEBREW.replace(" ", "_")].astype(float)   < 0.33)]
-    print(len(hot_3))
+    infra_or_isp_ci_table = create_ci_table(ci_data=ci_data, pure=False)
+    infra_and_ci_table = create_ci_table(ci_data=ci_data, pure=True)
+    # pretty_print_df(infra_and_or_ci_table)
+    _ = json.dumps(infra_or_isp_ci_table.to_dict(), indent=2, sort_keys=True,  ensure_ascii=False).encode('utf8')
+    print(_.decode())
     quit()
 
     # Init CI tables

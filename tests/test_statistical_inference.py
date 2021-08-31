@@ -1,7 +1,7 @@
 import unittest
 from random import random
 
-from confidence_intervals import calc_confidence_interval, manual_ci_sample
+from confidence_interval_utils import calc_confidence_interval, manual_ci_sample
 
 
 class TestConfidenceInterval(unittest.TestCase):
