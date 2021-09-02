@@ -421,20 +421,16 @@ def summary_isp_and_infra_header() -> Tuple[str, str, str, str, str, str]:
 
 
 def create_summary_ci_tables():
-    isp_or_infra = pd.DataFrame.from_records(get_rows(CI_HIGHLEVEL_QUERY_ISP_OR_INFRA),
-                                             columns=summary_isp_or_infra_header())
-    isp_and_infra = pd.DataFrame.from_records(get_rows(CI_HIGHLEVEL_QUERY_ISP_AND_INFRA),
-                                              columns=summary_isp_and_infra_header())
-    update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA, isp_or_infra)
-    update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA, isp_and_infra)
+    ci_data = ci_tables_to_df()
 
-    best_users_isp_plus_infra = create_user_performance_tables(vendor_logic='and')
-    best_users_isp_or_infra = create_user_performance_tables(vendor_logic='or')
-    pretty_print_df(best_users_isp_plus_infra)
-    pretty_print_df(best_users_isp_or_infra)
-    print("updating 80+ tables...")
-    update_sheet('משתמשי 80+ ספקית + תשתית', best_users_isp_plus_infra)
-    update_sheet('משתמשי 80+ ספקית או תשתית', best_users_isp_or_infra)
+    infra_and_ci_table = create_ci_table(ci_data=ci_data, pure=True)
+    infra_or_isp_ci_table = create_ci_table(ci_data=ci_data, pure=False)
+
+    pretty_print_df(infra_and_ci_table)
+    pretty_print_df(infra_or_isp_ci_table)
+    print("updating summary tables...")
+    update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_AND_INFRA, infra_and_ci_table)
+    update_sheet(SPREADSHEET_TITLE_SUMMARY_ISP_OR_INFRA, infra_or_isp_ci_table)
 
 
 def pretty_print_df(df: pd.DataFrame):
@@ -444,25 +440,25 @@ def pretty_print_df(df: pd.DataFrame):
         print(df)
 
 
-def create_user_performance_tables(ratio: float = 0.8, vendor_logic: str ='or'):
-    engine = get_engine()
-    cur = engine.cursor()
-    base_query = """select count(distinct "שם_משתמש") from {}
-                    where "גבול_עליון"::float >= "תכנית"::float * {};"""
-    raw_result = []
-    vendor_prefix = '' if vendor_logic == 'or' else 'pure_'
-    vendor_column = 'ספקית או תשתית' if vendor_logic == 'or' else 'ספקית + תשתית'
-    for vendor, vendor_heb in [('bezeq', 'בזק'), ('hot', 'הוט'), ('partner', 'פרטנר')]:
-        table_name = vendor_prefix + vendor + '_' + 'ci'
-        cur.execute(base_query.format(table_name, ratio))
-        above_ratio_user_count = cur.fetchall()[0][0]
-        cur.execute('select count(distinct "שם_משתמש") from {}'.format(table_name))
-        overall_user_count = cur.fetchall()[0][0]
-        raw_result.append({vendor_column: vendor_heb,
-                           "מספר משתמשים שמהירות הגלישה הממוצעת שלהם גבוהה מ-80% מהירות החבילה": above_ratio_user_count,
-                          'מספר משתמשים': overall_user_count})
-    result = pd.DataFrame(raw_result)
-    return result
+# def create_user_performance_tables(ratio: float = 0.8, vendor_logic: str ='or'):
+#     engine = get_engine()
+#     cur = engine.cursor()
+#     base_query = """select count(distinct "שם_משתמש") from {}
+#                     where "גבול_עליון"::float >= "תכנית"::float * {};"""
+#     raw_result = []
+#     vendor_prefix = '' if vendor_logic == 'or' else 'pure_'
+#     vendor_column = 'ספקית או תשתית' if vendor_logic == 'or' else 'ספקית + תשתית'
+#     for vendor, vendor_heb in [('bezeq', 'בזק'), ('hot', 'הוט'), ('partner', 'פרטנר')]:
+#         table_name = vendor_prefix + vendor + '_' + 'ci'
+#         cur.execute(base_query.format(table_name, ratio))
+#         above_ratio_user_count = cur.fetchall()[0][0]
+#         cur.execute('select count(distinct "שם_משתמש") from {}'.format(table_name))
+#         overall_user_count = cur.fetchall()[0][0]
+#         raw_result.append({vendor_column: vendor_heb,
+#                            "מספר משתמשים שמהירות הגלישה הממוצעת שלהם גבוהה מ-80% מהירות החבילה": above_ratio_user_count,
+#                           'מספר משתמשים': overall_user_count})
+#     result = pd.DataFrame(raw_result)
+#     return result
 
 
 def ci_tables_to_df() -> pd.DataFrame:
@@ -516,12 +512,12 @@ def create_ci_table(ci_data: pd.DataFrame, pure=False) -> pd.DataFrame:
         raw_item = dict()
         vendor = vendor if pure is False else "pure_" + vendor
         vendor_column = "ספקית או תשתית" if pure is False else "ספקית + תשתית"
-        raw_item[vendor_column] = vendor
+        raw_item[vendor_column] = {"bezeq": "בזק", "hot": "הוט", "partner": "פרטנר"}[vendor.split("_")[-1]]
         raw_item["מספר משתמשים"] = len(ci_data[(ci_data["group"] == vendor) & (ci_data["evening"] == False)])
         raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה"] = \
             calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=False, bound=1/2)
         raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה מחצי הבטחת החבילה בשעות הערב"] = \
-            calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=True, bound=1 / 2)
+            calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=True, bound=1/2)
         raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה"] = \
             calculate_users_below_bound(ci_data=ci_data, group=vendor, evening=False, bound=1/3)
         raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם נמוכה משליש הבטחת החבילה בשעות הערב"] = \
@@ -529,25 +525,21 @@ def create_ci_table(ci_data: pd.DataFrame, pure=False) -> pd.DataFrame:
         raw_item["מספר משתמשים שמהירות הגלישה הממוצעת שלהם גבוהה מ-80% הבטחת החבילה"] = \
             calculate_users_above_bound(ci_data=ci_data, group=vendor, evening=False, bound=4/5)
         raw_table.append(raw_item)
-    return pd.DataFrame.from_dict(raw_table)
+
+    table = pd.DataFrame.from_dict(
+        raw_table)
+    table = table[table.columns[::-1]] # reverse column order (hebrew - right to left)
+    return table
 
 
 if __name__ == "__main__":
-    ci_data = ci_tables_to_df()
-    infra_or_isp_ci_table = create_ci_table(ci_data=ci_data, pure=False)
-    infra_and_ci_table = create_ci_table(ci_data=ci_data, pure=True)
-    # pretty_print_df(infra_and_or_ci_table)
-    _ = json.dumps(infra_or_isp_ci_table.to_dict(), indent=2, sort_keys=True,  ensure_ascii=False).encode('utf8')
-    print(_.decode())
-    quit()
-
     # Init CI tables
     ci_table_initiator = CITablesInit()
     ci_table_initiator.init_all_ci_tables()
 
     for pv in [True, False]:
         for iv in [True, False]:
-            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1 / 3], pure_vendor=pv, is_evening=iv)
+            calc_confidence_mean_for_random_sample(k=300, default_rates=[0.5, 1/3], pure_vendor=pv, is_evening=iv)
 
     print("uploading ci summary tables")
     create_summary_ci_tables()
