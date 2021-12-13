@@ -113,7 +113,7 @@ libcomps==0.1.15
 libvirt-python==6.1.0
 llvmlite==0.36.0
 locket==0.2.1
-lxml==4.4.1
+lxml==4.6.5
 mac-vendor-lookup==0.1.11
 Mako==1.1.1.dev0
 manimlib==0.2.0
