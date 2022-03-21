@@ -74,7 +74,7 @@ google-auth==1.29.0
 google-auth-oauthlib==0.4.4
 gpg==1.14.0
 greenlet==1.0.0
-Guake==3.6.3
+Guake==3.8.5
 html5lib==1.1
 humanize==0.5.1
 hypothesis==6.10.0
