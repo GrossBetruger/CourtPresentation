@@ -8,7 +8,7 @@ mkdir -p Backup
 
 filename="servile_backup_$(date | awk '{print $2$3$4}').sql"
 
-docker cp local_servile:/home/servile_backup/servile_backup.sql Backup/$filename
+docker cp local_servile:/home/servile_backup/servile_backup.sql ./Backup/$filename
 
 zip Backup/"$filename".zip Backup/$filename
 rm Backup/$filename
