@@ -41,7 +41,7 @@ colorama==0.4.1
 colour==0.1.5
 coverage==5.5
 cpplint==1.5.4
-cryptography==3.4.7
+cryptography==39.0.1
 cupshelpers==1.0
 cycler==0.10.0
 Cython==0.29.23
